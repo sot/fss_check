@@ -1,8 +1,28 @@
-bad_times = [
+import Ska.engarchive.fetch_eng as fetch
+
+bad_times = ['2000:048:00:00:00.000 2000:050:00:00:00.000',
+             '2000:070:23:00:00.000 2000:071:13:00:00.000',
+             '2001:110:00:00:00.000 2001:113:00:00:00.000',
+             '2003:200:00:00:00.000 2003:201:00:00:00.000',
+             '2004:315:00:00:00.000 2004:317:00:00:00.000',
+             '2008:225:00:00:00.000 2008:229:00:00:00.000',
              '2008:292:00:00:00.000 2008:296:00:00:00.000',
              '2010:149:00:00:00.000 2010:153:00:00:00.000',
              '2011:187:12:00:00.000 2011:192:04:00:00.000',
              '2011:299:00:00:00.000 2011:300:12:00:00.000',
+             '2002:031:16:09:58.434 2002:031:16:20:19.959',
+             '2002:219:02:12:33.194 2002:219:02:22:51.644',
+             '2002:229:16:49:34.857 2002:229:16:59:39.982',
+             '2003:211:01:19:00.287 2003:211:01:29:09.512',
+             '2003:219:00:13:37.167 2003:219:00:24:12.017',
+             '2004:018:08:34:20.529 2004:018:08:44:46.154',
+             '2004:034:05:51:58.039 2004:034:06:02:18.539',
+             '2004:203:00:50:41.357 2004:203:01:01:27.482',
+             '2006:199:07:25:17.155 2006:199:07:36:22.755',
+             '2007:077:14:18:39.114 2007:077:15:02:46.139',
+             '2007:011:21:08:51.203 2007:011:21:19:05.553',
+             '2007:175:10:41:12.351 2007:175:10:51:14.401',
+             '2007:193:23:30:34.028 2007:193:23:40:37.103',
              '2008:003:20:10:30.456 2008:003:20:22:11.931',
              '2008:003:20:12:15.006 2008:003:20:22:17.056',
              '2008:037:22:24:30.474 2008:037:22:37:37.024',
@@ -29,46 +49,64 @@ bad_times = [
 	     '2011:153:01:20:24.336 2011:153:02:04:46.736',
 	     '2011:187:12:23:44.974 2011:187:12:34:04.097',
    	     '2011:264:04:55:53.942 2011:264:05:38:17.442',
+   	     '2005:305:12:00:00.000 2005:305:13:00:00.000',
+   	     '2007:355:14:30:00.000 2007:355:15:30:00.000',   	     
    	     '2011:182:05:00:00.000 2011:182:06:00:00.000',
+   	     '2003:221:16:00:00.000 2003:221:17:00:00.000',
+   	     '2002:250:15:30:00.000 2002:250:17:00:00.000',
    	     '2008:037:22:00:00.000 2008:037:23:30:00.000']
 
-x = fetch.Msidset(['aopssupm', 'aopcadmd', 'pitch', 'roll', 'pitch_fss', 'roll_fss', 'aoacaseq'],
-                  '2009:001', '2012:144')
+msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
+         'aoalpang', 'aobetang', 'aosunprs')
+print 'fetching data'
+x = fetch.Msidset(msids, '2006:001', '2012:144')
+print 'starting interpolate'
 x.interpolate(1.025)
 
-for msid in x.keys():
-    x[msid].filter_bad_times(table=bad_times)
+for msid in x.values():
+    print 'filter_bad_times', msid.msid
+    msid.filter_bad_times(table=bad_times)
 
-ok = (x['aoacaseq'].vals == 'KALM') & (x['aopcadmd'].vals == 'NPNT') & ( x['pitch'].vals > 136) & (x['pitch'].vals < 148)
+ok = ((x['aoacaseq'].vals == 'KALM') &
+      (x['aopcadmd'].vals == 'NPNT') &
+      (x['pitch'].vals > 134) &
+      (x['pitch'].vals < 144))
 
+nvals = np.sum(ok)
+colnames = ('times', 'pitch', 'roll', 'alpha', 'beta', 'aosunprs', 'aopssupm', 'kalman')
+dtypes = ('f8', 'f4', 'f4', 'f4', 'f4', 'bool', 'bool', 'bool')
+out = np.empty(nvals, dtype=zip(colnames, dtypes))
 
-times = x['aopssupm'].times[ok]
-pitch = x['pitch'].vals[ok]
-roll = x['roll'].vals[ok]
-pitch_fss = x['pitch_fss'].vals[ok]
-roll_fss = x['roll_fss'].vals[ok]
-sunmon = x['aopssupm'].vals[ok]
-sme = sunmon == 'ACT '
+out['times'][:] = x.times[ok]
+out['pitch'][:] = x['pitch'].vals[ok]
+out['roll'][:] = x['roll'].vals[ok]
+out['alpha'][:] = -x['aoalpang'].vals[ok]
+out['beta'][:] = 90 - x['aobetang'].vals[ok]
+out['aosunprs'][:] = x['aosunprs'].vals[ok] == 'SUN '
+out['aopssupm'][:] = x['aopssupm'].vals[ok] == 'ACT '
+out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
+                    (x['aopcadmd'].vals[ok] == 'NPNT'))
+np.save('fss.npy', out)
 
-pitch_err = pitch - pitch_fss
-roll_err = roll - roll_fss
+# pitch_err = pitch - pitch_fss
+# roll_err = roll - roll_fss
 
-figure(1)
-clf()
-plot(pitch, pitch_err, ',')
-figure(2)
-clf()
-plot(roll, roll_err, ',')
-figure(3)
-clf()
-plot(pitch,roll_err, ',')
-plot(pitch[sme], roll_err[sme], 'or', markeredgecolor='r')
+# figure(1)
+# clf()
+# plot(pitch, pitch_err, ',')
+# figure(2)
+# clf()
+# plot(roll, roll_err, ',')
+# figure(3)
+# clf()
+# plot(pitch,roll_err, ',')
+# plot(pitch[sme], roll_err[sme], 'or', markeredgecolor='r')
 
-bad = abs(roll_err) > 5
-figure(4)
-clf()
-plot_cxctime(times[bad], roll_err[bad], ',')
+# bad = abs(roll_err) > 5
+# figure(4)
+# clf()
+# plot_cxctime(times[bad], roll_err[bad], ',')
 
-figure(5)
-clf()
-scatter(pitch, roll_err, c=times, edgecolor='none')
+# figure(5)
+# clf()
+# scatter(pitch, roll_err, c=times, edgecolor='none')
