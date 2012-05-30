@@ -84,7 +84,7 @@ out['aosunprs'][:] = x['aosunprs'].vals[ok] == 'SUN '
 out['aopssupm'][:] = x['aopssupm'].vals[ok] == 'ACT '
 out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
                     (x['aopcadmd'].vals[ok] == 'NPNT'))
-np.save('fss.npy', out)
+np.save('fss2.npy', out)
 
 # pitch_err = pitch - pitch_fss
 # roll_err = roll - roll_fss
