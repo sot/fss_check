@@ -67,9 +67,7 @@ for msid in x.values():
     print 'filter_bad_times', msid.msid
     msid.filter_bad_times(table=bad_times)
 
-ok = ((x['aoacaseq'].vals == 'KALM') &
-      (x['aopcadmd'].vals == 'NPNT') &
-      (x['pitch'].vals > 134) &
+ok = ((x['pitch'].vals > 134) &
       (x['pitch'].vals < 144))
 
 nvals = np.sum(ok)
