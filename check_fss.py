@@ -62,31 +62,43 @@ def make_plots(out, alpha_err_lim=5.0):
 def get_data(start='2005:001', stop='2012:144', interp=32.8,
              pitch0=134, pitch1=144):
     msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
-             'aoalpang', 'aobetang', 'aosunprs')
+             'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
     print 'fetching data'
     x = fetch.MSIDset(msids, start, stop)
+
+    # Resample MSIDset (values and bad flags) onto a common time sampling
     print 'starting interpolate'
     x.interpolate(interp, filter_bad=False)
 
+    # Remove data during times of known bad or anomalous data
     for msid in x.values():
         print 'filter_bad_times', msid.msid
         filter_bad_times(msid, table=bad_times)
-        # msid.filter_bad_times(table=bad_times)
 
+    # Select data only in a limited pitch range
     ok = ((x['pitch'].vals > pitch0) &
           (x['pitch'].vals < pitch1))
 
+    # Determine the logical-or of bad values for all MSIDs and use this
+    # to further filter the data sample
     nvals = np.sum(ok)
     bads = np.zeros(nvals, dtype=bool)
     for msid in x.values():
+        # Ignore sun position monitor for bad data because it is frequently
+        # bad (not available in certain subformats including SSR)
+        if msid.MSID == 'AOPSSUPM':
+            continue
         print msid.msid, sum(msid.bads[ok])
         bads = bads | msid.bads[ok]
     ok[ok] = ok[ok] & ~bads
 
     nvals = np.sum(ok)
-    colnames = ('times', 'pitch', 'roll', 'alpha', 'beta',
-                'aosunprs', 'aopssupm', 'kalman')
-    dtypes = ('f8', 'f4', 'f4', 'f4', 'f4', 'bool', 'bool', 'bool')
+    colnames = ('times',
+                'pitch', 'roll', 'alpha', 'beta',
+                'alpha_sun', 'beta_sun', 'spm_act', 'spm_act_bad', 'kalman')
+    dtypes = ('f8',
+              'f4', 'f4', 'f4', 'f4',
+              'bool', 'bool', 'bool', 'bool', 'bool', 'bool')
     out = np.empty(nvals, dtype=zip(colnames, dtypes))
 
     out['times'][:] = x.times[ok]
@@ -94,8 +106,10 @@ def get_data(start='2005:001', stop='2012:144', interp=32.8,
     out['roll'][:] = x['roll'].vals[ok]
     out['alpha'][:] = -x['aoalpang'].vals[ok]
     out['beta'][:] = 90 - x['aobetang'].vals[ok]
-    out['aosunprs'][:] = x['aosunprs'].vals[ok] == 'SUN '
-    out['aopssupm'][:] = x['aopssupm'].vals[ok] == 'ACT '
+    out['alpha_sun'][:] = x['aoalpsun'].vals[ok] == 'SUN '
+    out['beta_sun'][:] = x['aobetsun'].vals[ok] == 'SUN '
+    out['spm_act'][:] = x['aopssupm'].vals[ok] == 'ACT '
+    out['spm_act_bad'][:] = x['aopssupm'].bads[ok]
     out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
                         (x['aopcadmd'].vals[ok] == 'NPNT'))
     return out
