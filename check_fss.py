@@ -3,22 +3,24 @@ from itertools import count
 import asciitable
 import matplotlib.pyplot as plt
 import numpy as np
-from Ska.Matplotlib import plot_cxctime
+from Ska.Matplotlib import plot_cxctime, cxctime2plotdate
 import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
 
 from bad_times import bad_times
 
-def make_plots(out, alpha_err_lim=5.0):
+def make_plots(out, angle_err_lim=8.0):
     times= out['times']
     pitch = out['pitch']
     alpha_err = out['alpha'] - out['roll']
-    alpha_err1 = abs(alpha_err) > alpha_err_lim
+    alpha_sun = out['alpha_sun']
+    beta_err = out['beta'] - out['pitch']
+    beta_sun = out['beta_sun']
 
     for i, title, xlabel, ylabel in (
-        (1, 'Roll error vs. pitch', 'Pitch (deg)', 'Roll err (deg)'),
-        (2, 'Roll error vs. time', None, 'Roll err (deg)'),
-        (3, 'Glitch pitch vs. time', None, 'Pitch (deg)')):
+        (1, 'Pitch vs. time for bad alpha values', None, 'Pitch (deg)'),
+        (2, 'Pitch (alpha no sun) vs. time', None, 'Pitch (deg)'),
+        (3, 'Pitch (beta no sun) vs. time', None, 'Pitch (deg)')):
         plt.figure(i)
         plt.clf()
         plt.grid()
@@ -32,32 +34,42 @@ def make_plots(out, alpha_err_lim=5.0):
                   ('b', 'r'))
     for filt, col1, col2 in zipvals:
         plt.figure(1)
-        aerr = alpha_err1 & filt
-        sperr = out['aosunprs'] & aerr
-        n_sperr = sum(sperr)
-        plt.plot(out['pitch'][aerr], alpha_err[aerr], ',', color=col1, mec=col1)
-        plt.plot(out['pitch'][::20], alpha_err[::20], ',', color=col1, mec=col1)
-        if n_sperr:
-            plt.plot(out['pitch'][sperr], alpha_err[sperr], '.',
-                     color=col2, mec=col2)
+        ok = filt & ~alpha_sun
+        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1)
 
-        figure(2)
-        plot_cxctime(times[aerr], alpha_err[aerr], ',', color=col1, mec=col1)
-        if n_sperr:
-            plot_cxctime(times[sperr], alpha_err[sperr], '.',
-                         color=col2, mec=col2)
+        continue
+        plt.figure(2)
+        ok = filt & alpha_sun & (abs(alpha_err) > angle_err_lim)
+        if sum(ok) > 0:
+            plot_cxctime(times[ok], pitch[ok], ',', color='k', mec='k')
+        ok = filt & ~alpha_sun
+        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1)
 
-        figure(3)
-        plot_cxctime(times[aerr], pitch[aerr], ',', color=col1, mec=col1)
-        if n_sperr:
-            plot_cxctime(times[sperr], pitch[sperr], '.r',
-                         color=col2, mec=col2)
+        plt.figure(3)
+        ok = filt & beta_sun & (abs(beta_err) > angle_err_lim)
+        if sum(ok) > 0:
+            plot_cxctime(times[ok], pitch[ok], ',', color='k', mec='k')
+        ok = filt & ~beta_sun
+        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1)
 
-    for i in range(1, 4):
+    plt.figure(1)
+    ok = alpha_sun & (abs(alpha_err) > angle_err_lim)
+    if sum(ok) > 0:
+        plt.set_cmap(plt.jet())
+        plotdates = cxctime2plotdate(times[ok])
+        plt.scatter(plotdates, pitch[ok], marker='o',
+                    c=np.abs(alpha_err[ok]),
+                    edgecolor='none',
+                    s=80,
+                    vmin=5, vmax=40)
+        plt.colorbar()
+
+    for i in range(2, 4):
         plt.figure(i)
         x0, x1 = plt.xlim()
         dx = (x1 - x0) / 20
         plt.xlim(x0 - dx, x1 + dx)
+        plt.ylim(133.5, 144.5)
 
 def get_data(start='2005:001', stop='2012:144', interp=32.8,
              pitch0=134, pitch1=144):
@@ -171,27 +183,3 @@ def filter_bad_times(msid_self, start=None, stop=None, table=None):
         if isinstance(attr, np.ndarray):
             setattr(msid_self, colname, attr[ok])
 
-# np.save('fss4.npy', out)
-
-# pitch_err = pitch - pitch_fss
-# roll_err = roll - roll_fss
-
-# figure(1)
-# clf()
-# plot(pitch, pitch_err, ',')
-# figure(2)
-# clf()
-# plot(roll, roll_err, ',')
-# figure(3)
-# clf()
-# plot(pitch,roll_err, ',')
-# plot(pitch[sme], roll_err[sme], 'or', mec='r')
-
-# bad = abs(roll_err) > 5
-# figure(4)
-# clf()
-# plot_cxctime(times[bad], roll_err[bad], ',')
-
-# figure(5)
-# clf()
-# scatter(pitch, roll_err, c=times, edgecolor='none')
