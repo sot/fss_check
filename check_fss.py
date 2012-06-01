@@ -9,7 +9,8 @@ from Chandra.Time import DateTime
 
 from bad_times import bad_times
 
-def make_plots(out, angle_err_lim=8.0):
+def make_plots_pitch(out, angle_err_lim=8.0, fileroot='pitch'):
+    plt.rc('legend', fontsize=11)
     times= out['times']
     pitch = out['pitch']
     alpha_err = out['alpha'] - out['roll']
@@ -18,9 +19,9 @@ def make_plots(out, angle_err_lim=8.0):
     beta_sun = out['beta_sun']
 
     for i, title, xlabel, ylabel in (
-        (1, 'Pitch vs. time for bad alpha values', None, 'Pitch (deg)'),
-        (2, 'Pitch (alpha no sun) vs. time', None, 'Pitch (deg)'),
-        (3, 'Pitch (beta no sun) vs. time', None, 'Pitch (deg)')):
+        (1, 'Pitch for bad alpha values & sun presence True', None, 'Pitch (deg)'),
+        (2, 'Pitch when alpha sun presence is False', None, 'Pitch (deg)'),
+        (3, 'Pitch when beta sun presence is False', None, 'Pitch (deg)')):
         plt.figure(i)
         plt.clf()
         plt.grid()
@@ -31,45 +32,38 @@ def make_plots(out, angle_err_lim=8.0):
 
     zipvals = zip((~out['kalman'], out['kalman']),
                   ('c', 'r'),
-                  ('b', 'r'))
-    for filt, col1, col2 in zipvals:
+                  ('b', 'r'),
+                  ('Not Kalman (cyan)', 'Kalman (red)'))
+    for filt, col1, col2, label in zipvals:
         plt.figure(1)
         ok = filt & ~alpha_sun
-        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1)
+        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1, label=label)
 
-        continue
         plt.figure(2)
-        ok = filt & alpha_sun & (abs(alpha_err) > angle_err_lim)
-        if sum(ok) > 0:
-            plot_cxctime(times[ok], pitch[ok], ',', color='k', mec='k')
         ok = filt & ~alpha_sun
-        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1)
+        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1, label=label)
 
         plt.figure(3)
-        ok = filt & beta_sun & (abs(beta_err) > angle_err_lim)
-        if sum(ok) > 0:
-            plot_cxctime(times[ok], pitch[ok], ',', color='k', mec='k')
         ok = filt & ~beta_sun
-        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1)
+        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1, label=label)
 
-    plt.figure(1)
-    ok = alpha_sun & (abs(alpha_err) > angle_err_lim)
-    if sum(ok) > 0:
-        plt.set_cmap(plt.jet())
-        plotdates = cxctime2plotdate(times[ok])
-        plt.scatter(plotdates, pitch[ok], marker='o',
-                    c=np.abs(alpha_err[ok]),
-                    edgecolor='none',
-                    s=80,
-                    vmin=5, vmax=40)
-        plt.colorbar()
+        plt.figure(1)
+        ok = filt & alpha_sun & (abs(alpha_err) > angle_err_lim)
+        if sum(ok) > 0:
+            plot_cxctime(times[ok], pitch[ok], 'o', color=col2, mec=col2,
+                         ms=3, label='Bad alpha & sun presence True')
 
-    for i in range(2, 4):
-        plt.figure(i)
+    
+    suffs = ('_bad_alpha_sun', '_alpha_no_sun', '_beta_no_sun')
+    for i, suff in enumerate(suffs):
+        plt.figure(i + 1)
         x0, x1 = plt.xlim()
         dx = (x1 - x0) / 20
         plt.xlim(x0 - dx, x1 + dx)
         plt.ylim(133.5, 144.5)
+        plt.legend(loc='lower right')
+        if fileroot:
+            plt.savefig(fileroot + suff + '.png')
 
 def get_data(start='2005:001', stop='2012:144', interp=32.8,
              pitch0=134, pitch1=144):
