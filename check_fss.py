@@ -1,5 +1,3 @@
-from itertools import count
-
 import asciitable
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,8 +7,34 @@ from Chandra.Time import DateTime
 
 from bad_times import bad_times
 
+plt.rc('legend', fontsize=11)
+
+def plot_2008246_event(savefig=False):
+    dat = fetch.MSIDset(['aoalpang', 'aosunprs', 'pitch'],
+                        '2008:246:02:00:00', '2008:246:03:00:00')
+    dat.interpolate(1.025, filter_bad=True)
+    plt.figure(6)
+    plt.clf()
+    plt.subplot(2, 1, 1)
+    plot_cxctime(dat['aoalpang'].times, dat['aoalpang'].vals, '.', label='Sun not present')
+    plot_cxctime(dat['aoalpang'].times, dat['aoalpang'].vals)
+    ok = dat['aosunprs'].vals == 'SUN '
+    plot_cxctime(dat['aoalpang'].times[ok], dat['aoalpang'].vals[ok],
+                 '.r', ms=12, mec='r', label='Sun present')
+    plt.title('Bad Alpha angles with sun presence on 2008:246')
+    plt.ylabel('AOALPANG (deg)')
+    plt.legend(loc='upper left')
+    plt.grid()
+    plt.subplot(2, 1, 2)
+    plot_cxctime(dat['pitch'].times, dat['pitch'].vals, '.')
+    plt.title('Pitch angle')
+    plt.ylabel('pitch (deg)')
+    plt.grid()
+    plt.tight_layout()
+    if savefig:
+        plt.savefig('event_2008246.png')
+
 def plot_pitches(out, angle_err_lim=8.0, savefig=False):
-    plt.rc('legend', fontsize=11)
     times= out['times']
     pitch = out['pitch']
     alpha_err = out['alpha'] - out['roll']
@@ -137,7 +161,7 @@ def get_data(start='2005:001', stop='2012:144', interp=32.8,
               'bool', 'bool', 'bool', 'bool', 'bool', 'bool')
     out = np.empty(nvals, dtype=zip(colnames, dtypes))
 
-    out['times'][:] = x.times[ok]
+    out['times'][:] = x['pitch'].times[ok]
     out['pitch'][:] = x['pitch'].vals[ok]
     out['roll'][:] = x['roll'].vals[ok]
     out['alpha'][:] = -x['aoalpang'].vals[ok]
