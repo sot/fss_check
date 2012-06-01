@@ -9,7 +9,7 @@ from Chandra.Time import DateTime
 
 from bad_times import bad_times
 
-def plot_pitches(out, angle_err_lim=8.0, fileroot='pitch'):
+def plot_pitches(out, angle_err_lim=8.0, savefig=False):
     plt.rc('legend', fontsize=11)
     times= out['times']
     pitch = out['pitch']
@@ -56,9 +56,9 @@ def plot_pitches(out, angle_err_lim=8.0, fileroot='pitch'):
     
     figure(1)
     plot_cxctime([DateTime('2012:150:03:33:00').secs], [139.1], 'x', color='r', mec='r',
-                 ms=7, mew=2)
+                 ms=7, mew=2, label="Safe mode 2012:150")
 
-    suffs = ('_bad_alpha_sun', '_alpha_no_sun', '_beta_no_sun')
+    suffs = ('bad_alpha_sun', 'alpha_no_sun', 'beta_no_sun')
     for i, suff in enumerate(suffs):
         plt.figure(i + 1)
         x0, x1 = plt.xlim()
@@ -66,8 +66,8 @@ def plot_pitches(out, angle_err_lim=8.0, fileroot='pitch'):
         plt.xlim(x0 - dx, x1 + dx)
         plt.ylim(133.5, 144.5)
         plt.legend(loc='lower right')
-        if fileroot:
-            plt.savefig(fileroot + suff + '.png')
+        if savefig:
+            plt.savefig('pitch_' + suff + '.png')
 
 
 def plot_angle_err(out, axis='alpha'):
@@ -84,14 +84,15 @@ def plot_angle_err(out, axis='alpha'):
     plt.title('{} angle error vs. pitch (AOSUNPRS=NSUN)'.format(taxis))
 
 
-def plot_angle_errs(out):
+def plot_angle_errs(out, savefig=False):
     plt.figure(4)
     clf()
     plt.subplot(2, 1, 1)
     plot_angle_err(out, axis='alpha')
     plt.subplot(2, 1, 2)
     plot_angle_err(out, axis='beta')
-    plt.savefig('angle_err.png')
+    if savefig:
+        plt.savefig('angle_err.png')
 
 
 def get_data(start='2005:001', stop='2012:144', interp=32.8,
