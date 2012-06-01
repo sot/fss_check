@@ -19,7 +19,7 @@ def make_plots_pitch(out, angle_err_lim=8.0, fileroot='pitch'):
     beta_sun = out['beta_sun']
 
     for i, title, xlabel, ylabel in (
-        (1, 'Pitch for bad alpha values & sun presence True', None, 'Pitch (deg)'),
+        (1, 'Pitch for bad value & sun presence True', None, 'Pitch (deg)'),
         (2, 'Pitch when alpha sun presence is False', None, 'Pitch (deg)'),
         (3, 'Pitch when beta sun presence is False', None, 'Pitch (deg)')):
         plt.figure(i)
@@ -48,10 +48,10 @@ def make_plots_pitch(out, angle_err_lim=8.0, fileroot='pitch'):
         plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1, label=label)
 
         plt.figure(1)
-        ok = filt & alpha_sun & (abs(alpha_err) > angle_err_lim)
+        ok = filt & alpha_sun & beta_sun & (abs(alpha_err) > angle_err_lim)
         if sum(ok) > 0:
             plot_cxctime(times[ok], pitch[ok], 'o', color=col2, mec=col2,
-                         ms=3, label='Bad alpha & sun presence True')
+                         ms=3, label='Bad & sun presence True')
 
     
     suffs = ('_bad_alpha_sun', '_alpha_no_sun', '_beta_no_sun')
