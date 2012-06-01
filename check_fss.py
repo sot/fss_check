@@ -65,6 +65,31 @@ def make_plots_pitch(out, angle_err_lim=8.0, fileroot='pitch'):
         if fileroot:
             plt.savefig(fileroot + suff + '.png')
 
+
+def plot_angle_err(out, axis='alpha'):
+    taxis = axis.title()
+    sc = {'alpha': 'roll', 'beta': 'pitch'}
+    ok = out['alpha_sun'] & out['beta_sun']
+    nok = ~ok
+    plt.grid()
+    plt.title('')
+    plot(out['pitch'][nok], out[axis][nok] - out[sc[axis]][nok], ',b', mec='b')
+    if axis == 'beta':
+        plt.xlabel('Pitch (deg)')
+    plt.ylabel('Angle err (deg)')
+    plt.title('{} angle error vs. pitch (AOSUNPRS=NSUN)'.format(taxis))
+
+
+def plot_angle_errs(out):
+    plt.figure(4)
+    clf()
+    plt.subplot(2, 1, 1)
+    plot_angle_err(out, axis='alpha')
+    plt.subplot(2, 1, 2)
+    plot_angle_err(out, axis='beta')
+    plt.savefig('angle_err.png')
+
+
 def get_data(start='2005:001', stop='2012:144', interp=32.8,
              pitch0=134, pitch1=144):
     msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
