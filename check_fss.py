@@ -9,7 +9,7 @@ from Chandra.Time import DateTime
 
 from bad_times import bad_times
 
-def make_plots_pitch(out, angle_err_lim=8.0, fileroot='pitch'):
+def plot_pitches(out, angle_err_lim=8.0, fileroot='pitch'):
     plt.rc('legend', fontsize=11)
     times= out['times']
     pitch = out['pitch']
@@ -54,6 +54,10 @@ def make_plots_pitch(out, angle_err_lim=8.0, fileroot='pitch'):
                          ms=3, label='Bad & sun presence True')
 
     
+    figure(1)
+    plot_cxctime([DateTime('2012:150:03:33:00').secs], [139.1], 'x', color='r', mec='r',
+                 ms=7, mew=2)
+
     suffs = ('_bad_alpha_sun', '_alpha_no_sun', '_beta_no_sun')
     for i, suff in enumerate(suffs):
         plt.figure(i + 1)
