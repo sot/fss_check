@@ -9,9 +9,15 @@ from bad_times import bad_times
 
 plt.rc('legend', fontsize=11)
 
-def plot_2008246_event(savefig=False):
+def plot_2008246_event(id='a', savefig=False):
+    if id == 'a':
+        start = '2008:246:02:00:00'
+        stop = '2008:246:03:00:00'
+    else:
+        start = '2008:246:13:20:00'
+        stop = '2008:246:13:45:00'
     dat = fetch.MSIDset(['aoalpang', 'aosunprs', 'pitch'],
-                        '2008:246:02:00:00', '2008:246:03:00:00')
+                        start, stop)
     dat.interpolate(1.025, filter_bad=True)
     plt.figure(6)
     plt.clf()
@@ -32,7 +38,7 @@ def plot_2008246_event(savefig=False):
     plt.grid()
     plt.tight_layout()
     if savefig:
-        plt.savefig('event_2008246.png')
+        plt.savefig('event_2008246{}.png'.format(id))
 
 def plot_pitches(out, angle_err_lim=8.0, savefig=False):
     times= out['times']
