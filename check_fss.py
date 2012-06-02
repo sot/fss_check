@@ -7,7 +7,9 @@ from Chandra.Time import DateTime
 
 from bad_times import bad_times
 
-plt.rc('legend', fontsize=11)
+SAFEMODE_2012150 = '2012:150:03:33:29'
+
+plt.rc('legend', fontsize=10)
 
 def plot_2008246_event(id='a', savefig=False):
     if id == 'a':
@@ -125,7 +127,7 @@ def plot_angle_errs(out, savefig=False):
         plt.savefig('angle_err.png')
 
 
-def get_data(start='2005:001', stop='2012:144', interp=32.8,
+def get_data(start='2005:001', stop=SAFEMODE_2012150, interp=32.8,
              pitch0=134, pitch1=144):
     msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
              'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
