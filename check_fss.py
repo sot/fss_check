@@ -42,6 +42,56 @@ def plot_2008246_event(id='a', savefig=False):
     if savefig:
         plt.savefig('event_2008246{}.png'.format(id))
 
+
+def plot_altitude(out, ephems=None, angle_err_lim=8.0, savefig=False):
+    times = out['times']
+    alpha_err = out['alpha'] - out['roll']
+    alpha_sun = out['alpha_sun']
+    beta_sun = out['beta_sun']
+    bad = alpha_sun & beta_sun & (abs(alpha_err) > angle_err_lim)
+    if ephems is None:
+        ephems = fetch.Msidset(['orbitephem1_*'], times[0], times[-1])
+    ephems.interpolate(out['times'][1] - out['times'][0])
+    alt_km = np.sqrt(ephems['orbitephem1_x'].vals ** 2 +
+                     ephems['orbitephem1_y'].vals ** 2 +
+                     ephems['orbitephem1_z'].vals ** 2) / 1000.0
+    idxs = np.searchsorted(ephems.times, times[bad])
+    idxs = idxs[idxs < len(ephems.times)]
+    plt.figure(10)
+    plt.clf()
+    plot_cxctime(ephems.times, alt_km, ',', color='c', mec='c')
+    plot_cxctime(ephems.times[idxs], alt_km[idxs], '.',
+                color='b', mec='b', ms=3)
+    plt.title('Orbit radius for bad FSS data')
+    plt.ylabel('Orbit radius (km)')
+    if savefig:
+        plt.savefig('orbit_bad_fss.png')
+    return ephems, alt_km, bad, idxs
+
+
+def plot_fss_temp(out, tfss=None, angle_err_lim=8.0, savefig=False):
+    times = out['times']
+    alpha_err = out['alpha'] - out['roll']
+    alpha_sun = out['alpha_sun']
+    beta_sun = out['beta_sun']
+    bad = alpha_sun & beta_sun & (abs(alpha_err) > angle_err_lim)
+    if tfss is None:
+        tfss = fetch.Msidset(['tfssbkt1'], times[0], times[-1])
+        tfss.interpolate(out['times'][1] - out['times'][0])
+    idxs = np.searchsorted(tfss.times, times[bad])
+    idxs = idxs[idxs < len(tfss.times)]
+    plt.figure(11)
+    plt.clf()
+    plot_cxctime(tfss.times, tfss['tfssbkt1'].vals, ',', color='c', mec='c')
+    plot_cxctime(tfss.times[idxs], tfss['tfssbkt1'].vals[idxs], '.',
+                color='b', mec='b', ms=3)
+    plt.title('FSS temperature for bad FSS data')
+    plt.ylabel('Temperature (degC)')
+    if savefig:
+        plt.savefig('fss_temp_bad_fss.png')
+    return tfss
+
+
 def plot_pitches(out, angle_err_lim=8.0, savefig=False):
     times= out['times']
     pitch = out['pitch']
