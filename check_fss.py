@@ -86,7 +86,7 @@ def plot_fss_temp(out, tfss=None, angle_err_lim=8.0, savefig=False):
     plot_cxctime(tfss.times[idxs], tfss['tfssbkt1'].vals[idxs], '.',
                 color='b', mec='b', ms=3)
     plt.title('FSS temperature for bad FSS data')
-    plt.ylabel('Temperature (degC)')
+    plt.ylabel('Temperature (degF)')
     if savefig:
         plt.savefig('fss_temp_bad_fss.png')
     return tfss
