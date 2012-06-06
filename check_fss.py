@@ -82,13 +82,33 @@ def plot_fss_temp(out, tfss=None, angle_err_lim=8.0, savefig=False):
     idxs = idxs[idxs < len(tfss.times)]
     plt.figure(11)
     plt.clf()
-    plot_cxctime(tfss.times, tfss['tfssbkt1'].vals, ',', color='c', mec='c')
-    plot_cxctime(tfss.times[idxs], tfss['tfssbkt1'].vals[idxs], '.',
+    tfssbkt1 = tfss['tfssbkt1'].vals
+    plot_cxctime(tfss.times, tfssbkt1, ',', color='c', mec='c')
+    plot_cxctime(tfss.times[idxs], tfssbkt1[idxs], '.',
                 color='b', mec='b', ms=3)
     plt.title('FSS temperature for bad FSS data')
     plt.ylabel('Temperature (degF)')
     if savefig:
         plt.savefig('fss_temp_bad_fss.png')
+
+    plt.figure(12)
+    plt.clf()
+    plt.subplot(2, 1, 1)
+    n, bins, p = plt.hist(tfssbkt1, bins=30)
+    plt.title('Histogram of all TFSSBKT1 values (2011:001 - 2012:150)')
+    plt.grid()
+    plt.subplot(2, 1, 2)
+    plt.hist(tfssbkt1[idxs], bins=bins)
+    plt.title('Histogram of TFSSBKT1 values for bad FSS data')
+    plt.grid()
+    plt.xlabel('TFSSBKT1 temperature (degF)')
+    plt.tight_layout()
+    if savefig:
+        plt.savefig('fss_temp_hist.png')
+
+    import scipy.stats
+    print scipy.stats.ks_2samp(tfssbkt1, tfssbkt1[idxs])
+
     return tfss
 
 
