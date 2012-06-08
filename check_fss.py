@@ -1,7 +1,7 @@
 import asciitable
 import matplotlib.pyplot as plt
 import numpy as np
-from Ska.Matplotlib import plot_cxctime, cxctime2plotdate
+from Ska.Matplotlib import plot_cxctime
 import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
 
@@ -10,6 +10,7 @@ from bad_times import bad_times
 SAFEMODE_2012150 = '2012:150:03:33:29'
 
 plt.rc('legend', fontsize=10)
+
 
 def plot_2008246_event(id='a', savefig=False):
     if id == 'a':
@@ -24,7 +25,8 @@ def plot_2008246_event(id='a', savefig=False):
     plt.figure(6)
     plt.clf()
     plt.subplot(2, 1, 1)
-    plot_cxctime(dat['aoalpang'].times, dat['aoalpang'].vals, '.', label='Sun not present')
+    plot_cxctime(dat['aoalpang'].times, dat['aoalpang'].vals, '.',
+                 label='Sun not present')
     plot_cxctime(dat['aoalpang'].times, dat['aoalpang'].vals)
     ok = dat['aosunprs'].vals == 'SUN '
     plot_cxctime(dat['aoalpang'].times[ok], dat['aoalpang'].vals[ok],
@@ -112,12 +114,11 @@ def plot_fss_temp(out, tfss=None, angle_err_lim=8.0, savefig=False):
     return tfss
 
 
-def plot_pitches(out, angle_err_lim=8.0, savefig=False):
-    times= out['times']
+def plot_pitches(out, angle_err_lim=8.0, savefig=False, plot_2012150=False):
+    times = out['times']
     pitch = out['pitch']
     alpha_err = out['alpha'] - out['roll']
     alpha_sun = out['alpha_sun']
-    beta_err = out['beta'] - out['pitch']
     beta_sun = out['beta_sun']
 
     for i, title, xlabel, ylabel in (
@@ -139,15 +140,18 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False):
     for filt, col1, col2, label in zipvals:
         plt.figure(1)
         ok = filt & ~alpha_sun
-        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1, label=label)
+        plot_cxctime(times[ok], pitch[ok], ',',
+                     color=col1, mec=col1, label=label)
 
         plt.figure(2)
         ok = filt & ~alpha_sun
-        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1, label=label)
+        plot_cxctime(times[ok], pitch[ok], ',',
+                     color=col1, mec=col1, label=label)
 
         plt.figure(3)
         ok = filt & ~beta_sun
-        plot_cxctime(times[ok], pitch[ok], ',', color=col1, mec=col1, label=label)
+        plot_cxctime(times[ok], pitch[ok], ',',
+                     color=col1, mec=col1, label=label)
 
         plt.figure(1)
         ok = filt & alpha_sun & beta_sun & (abs(alpha_err) > angle_err_lim)
@@ -155,10 +159,11 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False):
             plot_cxctime(times[ok], pitch[ok], 'o', color=col2, mec=col2,
                          ms=3, label='Bad & sun presence True')
 
-    
-    figure(1)
-    plot_cxctime([DateTime('2012:150:03:33:00').secs], [139.1], 'x', color='r', mec='r',
-                 ms=7, mew=2, label="Safe mode 2012:150")
+    if plot_2012150:
+        plt.figure(1)
+        plot_cxctime([DateTime('2012:150:03:33:00').secs], [139.1], 'x',
+                     color='r', mec='r',
+                     ms=7, mew=2, label="Safe mode 2012:150")
 
     suffs = ('bad_alpha_sun', 'alpha_no_sun', 'beta_no_sun')
     for i, suff in enumerate(suffs):
@@ -166,10 +171,16 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False):
         x0, x1 = plt.xlim()
         dx = (x1 - x0) / 20
         plt.xlim(x0 - dx, x1 + dx)
-        plt.ylim(133.5, 144.5)
+        y0, y1 = plt.ylim()
+        y0 = min(y0, 133.5)
+        dy = (y1 - y0) / 20
+        plt.ylim(y0 - dy, y1 + dy)
+
         plt.legend(loc='lower right')
         if savefig:
-            plt.savefig('pitch_' + suff + '.png')
+            if not isinstance(savefig, basestring):
+                savefig = ''
+            plt.savefig('pitch_' + savefig + suff + '.png')
 
 
 def plot_angle_err(out, axis='alpha'):
@@ -179,7 +190,8 @@ def plot_angle_err(out, axis='alpha'):
     nok = ~ok
     plt.grid()
     plt.title('')
-    plot(out['pitch'][nok], out[axis][nok] - out[sc[axis]][nok], ',b', mec='b')
+    plt.plot(out['pitch'][nok], out[axis][nok] - out[sc[axis]][nok], ',b',
+             mec='b')
     if axis == 'beta':
         plt.xlabel('Pitch (deg)')
     plt.ylabel('Angle err (deg)')
@@ -188,7 +200,7 @@ def plot_angle_err(out, axis='alpha'):
 
 def plot_angle_errs(out, savefig=False):
     plt.figure(4)
-    clf()
+    plt.clf()
     plt.subplot(2, 1, 1)
     plot_angle_err(out, axis='alpha')
     plt.subplot(2, 1, 2)
@@ -198,7 +210,7 @@ def plot_angle_errs(out, savefig=False):
 
 
 def get_data(start='2005:001', stop=SAFEMODE_2012150, interp=32.8,
-             pitch0=134, pitch1=144):
+             pitch0=100, pitch1=144):
     msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
              'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
     print 'fetching data'
@@ -252,6 +264,7 @@ def get_data(start='2005:001', stop=SAFEMODE_2012150, interp=32.8,
                         (x['aopcadmd'].vals[ok] == 'NPNT'))
     return out
 
+
 def filter_bad_times(msid_self, start=None, stop=None, table=None):
     """Filter out intervals of bad data in the MSID object.
 
@@ -282,7 +295,7 @@ def filter_bad_times(msid_self, start=None, stop=None, table=None):
         bad_times = asciitable.read(table, Reader=asciitable.NoHeader,
                                     names=['start', 'stop'])
     elif start is None and stop is None:
-        bad_times = msid_bad_times.get(msid_self.MSID, [])
+        raise ValueError('filter_times requires 2 args ')
     elif start is None or stop is None:
         raise ValueError('filter_times requires either 2 args '
                          '(start, stop) or no args')
@@ -308,4 +321,3 @@ def filter_bad_times(msid_self, start=None, stop=None, table=None):
         attr = getattr(msid_self, colname)
         if isinstance(attr, np.ndarray):
             setattr(msid_self, colname, attr[ok])
-
