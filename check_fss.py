@@ -133,31 +133,36 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, plot_2012150=False):
         if xlabel:
             plt.xlabel(xlabel)
 
-    zipvals = zip((~out['kalman'], out['kalman']),
-                  ('c', 'r'),
-                  ('b', 'r'),
-                  ('Not Kalman (cyan)', 'Kalman (red)'))
-    for filt, col1, col2, label in zipvals:
+    zipvals = zip((~out['kalman'],
+                    out['kalman']),
+                  (dict(color='c', mec='c'),  # Not Kalman, No sun presence
+                   dict(color='r', mec='r')),  # Kalman, No sun presence
+                  (dict(color='b', mec='b', fmt='o'),
+                   dict(color='r', mec='r', fmt='x', mew=2)),
+                  ('Not Kalman (cyan)',
+                   'Kalman (red)'))
+    for filt, opt1, opt2, label in zipvals:
         plt.figure(1)
         ok = filt & ~alpha_sun
         plot_cxctime(times[ok], pitch[ok], ',',
-                     color=col1, mec=col1, label=label)
+                     label=label, **opt1)
+
+        ok = filt & alpha_sun & beta_sun & (abs(alpha_err) > angle_err_lim)
+        if sum(ok) > 0:
+            plot_cxctime(times[ok], pitch[ok],
+                         label='Bad & sun presence True',
+                         **opt2)
 
         plt.figure(2)
         ok = filt & ~alpha_sun
         plot_cxctime(times[ok], pitch[ok], ',',
-                     color=col1, mec=col1, label=label)
+                     label=label, **opt1)
 
         plt.figure(3)
         ok = filt & ~beta_sun
         plot_cxctime(times[ok], pitch[ok], ',',
-                     color=col1, mec=col1, label=label)
+                     label=label, **opt1)
 
-        plt.figure(1)
-        ok = filt & alpha_sun & beta_sun & (abs(alpha_err) > angle_err_lim)
-        if sum(ok) > 0:
-            plot_cxctime(times[ok], pitch[ok], 'o', color=col2, mec=col2,
-                         ms=3, label='Bad & sun presence True')
 
     if plot_2012150:
         plt.figure(1)
@@ -176,7 +181,7 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, plot_2012150=False):
         dy = (y1 - y0) / 20
         plt.ylim(y0 - dy, y1 + dy)
 
-        plt.legend(loc='lower right')
+        plt.legend(loc='best')
         if savefig:
             if not isinstance(savefig, basestring):
                 savefig = ''
