@@ -5,8 +5,6 @@ from Ska.Matplotlib import plot_cxctime
 import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
 
-from bad_times import bad_times
-
 SAFEMODE_2012150 = '2012:150:03:33:29'
 
 plt.rc('legend', fontsize=10)
@@ -114,7 +112,7 @@ def plot_fss_temp(out, tfss=None, angle_err_lim=8.0, savefig=False):
     return tfss
 
 
-def plot_pitches(out, angle_err_lim=8.0, savefig=False, plot_2012150=False):
+def plot_pitches(out, angle_err_lim=8.0, savefig=False):
     times = out['times']
     pitch = out['pitch']
     alpha_err = out['alpha'] - out['roll']
@@ -163,13 +161,6 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, plot_2012150=False):
         plot_cxctime(times[ok], pitch[ok], ',',
                      label=label, **opt1)
 
-
-    if plot_2012150:
-        plt.figure(1)
-        plot_cxctime([DateTime('2012:150:03:33:00').secs], [139.1], 'x',
-                     color='r', mec='r',
-                     ms=7, mew=2, label="Safe mode 2012:150")
-
     suffs = ('bad_alpha_sun', 'alpha_no_sun', 'beta_no_sun')
     for i, suff in enumerate(suffs):
         plt.figure(i + 1)
@@ -183,9 +174,8 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, plot_2012150=False):
 
         plt.legend(loc='best')
         if savefig:
-            if not isinstance(savefig, basestring):
-                savefig = ''
-            plt.savefig('pitch_' + savefig + suff + '.png')
+            ident = savefig if isinstance(savefig, basestring) else ''
+            plt.savefig('pitch_' + ident + suff + '.png')
 
 
 def plot_angle_err(out, axis='alpha'):
@@ -225,10 +215,9 @@ def get_data(start='2005:001', stop=SAFEMODE_2012150, interp=32.8,
     print 'starting interpolate'
     x.interpolate(interp, filter_bad=False)
 
-    # Remove data during times of known bad or anomalous data
-    for msid in x.values():
-        print 'filter_bad_times', msid.msid
-        filter_bad_times(msid, table=bad_times)
+    # Remove data during times of known bad or anomalous data (works as of
+    # Ska.engarchive 0.19.1)
+    x.filter_bad_times()
 
     # Select data only in a limited pitch range
     ok = ((x['pitch'].vals > pitch0) &

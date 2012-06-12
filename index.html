@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>TITLE HERE</title>
+    <link href="/mta/ASPECT/aspect.css" rel="stylesheet" type="text/css" media="all" />
+  </head>
+
+  <body>
+<!--#include virtual="/mta/ASPECT/header.html"-->
+    
+      <h2> FSS Performance Trending </h2>
+
+      <h3> Summary </h3>
+
+      <p>
+      The 2012:150 entry to safe mode was caused by the FSS persistently reporting an
+      incorrect value (~32 degrees vs. expected value of 0 degrees) for the
+      Alpha angle (AOALPANG) while also reporting the Sun Presence flags
+      (AOALPSUN and AOBETSUN) as SUN (indicating sun is present and data values
+      are valid). This occurred in NPM while the Sun Position Monitor (SPM) was
+      active at a sun pitch slightly above 139 degrees. The incorrect Alpha sun
+      angle values caused two checks in the SPM to fail.
+
+      <h3> FSS bad data with sun presence  (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="pitch_bad_alpha_sun.png"-->)</h3>
+
+      <p>
+        The plot belows show the sun pitch angle for data points when the FSS reports
+      no sun presence in Alpha (AOAPLSUN = "NSUN") or Beta (AOBETSUN =
+      "NSUN"). This illustrates the effective FSS field of view outside of
+      which the data are marked invalid. The red points correspond to Kalman
+      mode (AOACASEQ = "KALM" and AOPCADMD = "NPNT"). The cyan points are those
+      when NOT in Kalman (corresponding mostly to maneuvers).
+
+      <p>
+        The big blue dots show "bad" angle data while in sun presence (AOALPSUN
+      and AOBETSUN both SUN) with the reported FSS angle more than 10 degrees
+      away from the "true" value. These points will be used in the Sun Position
+      Monitor if it is active, which is typically the case for NPM dwells and
+      maneuvers that are entirely within pitch < 139.0 [2]. All of the blue
+      points occurred with the SPM inactive, hence no safe mode entry. The
+      single red X represents the point on 2012:150 during NPM that led to the
+      safe mode entry.
+
+      <center>
+      <img SRC="pitch_bad_alpha_sun.png"><br/>
+      <img SRC="pitch_alpha_no_sun.png"><br/>
+      <img SRC="pitch_beta_no_sun.png"><br/>
+      </center>
+
+            <h3> Analysis data </h3>
+      The scripts and data used in this analysis are in 
+      <tt>/proj/sot/ska/analysis/safemode_2012150/fss_check</tt>
+      and <a href="https://github.com/sot/fss_check">https://github.com/sot/fss_check</a>.
+
+      <br></br>
+
+<!--#include virtual="/mta/ASPECT/footer.html"--> 
+<!--footer end-->
+
+  </body>
+</html>
