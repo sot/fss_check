@@ -112,6 +112,43 @@ def plot_fss_temp(out, tfss=None, angle_err_lim=8.0, savefig=False):
     return tfss
 
 
+def plot_pitches_any_kalman(out, angle_err_lim=8.0, savefig=False):
+    """Plot pitch for all points where alpha_err > angle_err_lim.
+    Cyan points are with no sun presence, red are with sun presence.
+    Unlike plot_pitches() below there is no distinction made based
+    on the kalman state.
+    """
+    times = out['times']
+    pitch = out['pitch']
+    alpha_err = out['alpha'] - out['roll']
+    sun = out['alpha_sun'] & out['beta_sun']
+    bad = abs(alpha_err) > angle_err_lim
+
+    zipvals = zip((~sun, sun),
+                  ('c.', 'r.'),
+                  ('c', 'r'),
+                  ('No Sun Presence', 'Sun Presence'))
+    plt.figure()
+    for filt, mark, mec, label in zipvals:
+        plot_cxctime(times[bad & filt], pitch[bad & filt], mark,
+                     mec=mec, label=label)
+    plt.legend(loc='lower left')
+    plt.grid('on')
+    plt.title("Pitch for alpha error > {} deg".format(angle_err_lim))
+    plt.ylabel('Pitch (deg)')
+
+    x0, x1 = plt.xlim()
+    dx = (x1 - x0) / 20
+    plt.xlim(x0 - dx, x1 + dx)
+    y0, y1 = plt.ylim()
+    y0 = min(y0, 133.5)
+    dy = (y1 - y0) / 20
+    plt.ylim(y0 - dy, y1 + dy)
+
+    if savefig:
+        plt.savefig('pitch_bad_alpha.png')
+
+
 def plot_pitches(out, angle_err_lim=8.0, savefig=False):
     times = out['times']
     pitch = out['pitch']
@@ -139,13 +176,15 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False):
                    dict(color='r', mec='r', fmt='x', mew=2)),
                   ('Not Kalman (cyan)',
                    'Kalman (red)'))
+    sun_presence = alpha_sun & beta_sun
+    bad_value = abs(alpha_err) > angle_err_lim
     for filt, opt1, opt2, label in zipvals:
         plt.figure(1)
-        ok = filt & ~alpha_sun
+        ok = filt & bad_value
         plot_cxctime(times[ok], pitch[ok], ',',
                      label=label, **opt1)
 
-        ok = filt & alpha_sun & beta_sun & (abs(alpha_err) > angle_err_lim)
+        ok = filt & sun_presence & bad_value
         if sum(ok) > 0:
             plot_cxctime(times[ok], pitch[ok],
                          label='Bad & sun presence True',

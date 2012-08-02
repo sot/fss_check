@@ -35,8 +35,11 @@ args = parser.parse_args()
 
 stop = args.stop or DateTime()
 start = args.start or stop - 180
-
 dat = check_fss.get_data(start, stop, interp=args.interp)
-
 with Ska.File.chdir(args.out):
     check_fss.plot_pitches(dat, savefig=True)
+
+start = args.start or stop - 365
+dat = check_fss.get_data(start, stop, interp=args.interp)
+with Ska.File.chdir(args.out):
+    check_fss.plot_pitches_any_kalman(dat, savefig=True)
