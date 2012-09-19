@@ -14,7 +14,8 @@ from Chandra.Time import DateTime
 os.environ['ENG_ARCHIVE'] = '/proj/sot/ska/data/eng_archive'
 
 sys.path.insert(0, os.path.dirname(__file__))
-import check_fss
+from check_fss import (get_fssa_data, get_fssb_data,
+                       plot_pitches, plot_pitches_any_kalman)
 
 parser = argparse.ArgumentParser(description='Daily FSS monitor')
 parser.add_argument('--out',
@@ -33,13 +34,20 @@ parser.add_argument('--interp',
                     help='Telemetry interpolation (secs)')
 args = parser.parse_args()
 
-stop = args.stop or DateTime()
-start = args.start or stop - 180
-dat = check_fss.get_data(start, stop, interp=args.interp)
-with Ska.File.chdir(args.out):
-    check_fss.plot_pitches(dat, savefig=True)
+stop = DateTime(args.stop)
 
-start = args.start or stop - 365
-dat = check_fss.get_data(start, stop, interp=args.interp)
-with Ska.File.chdir(args.out):
-    check_fss.plot_pitches_any_kalman(dat, savefig=True)
+for fss_dir, get_data in (('fssa', get_fssa_data),
+                          ('fssb', get_fssb_data)):
+    start = DateTime(args.start or stop - 180)
+    print 'Processing', fss_dir, start.date, stop.date
+    dat = get_data(start, stop, interp=args.interp)
+    with Ska.File.chdir(os.path.join(args.out, fss_dir)):
+        print ' plot_pitches'
+        plot_pitches(dat, savefig=True)
+
+    start = DateTime(args.start or stop - 365)
+    print 'Processing', fss_dir, start.date, stop.date
+    dat = get_data(start, stop, interp=args.interp)
+    with Ska.File.chdir(os.path.join(args.out, fss_dir)):
+        print ' plot_pitches_any_kalman'
+        plot_pitches_any_kalman(dat, savefig=True)

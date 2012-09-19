@@ -22,10 +22,44 @@
       angle values caused two checks in the SPM to fail.
     </p>
 
-    <h3> FSS bad data with sun presence  (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="pitch_bad_alpha_sun.png"-->)</h3>
+    <h3> Pitch Angles for Bad Data  (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="fssa/pitch_bad_alpha.png"-->)</h3>
+
+      <p>The plots below show the sun pitch angle for data points where the FSS
+      alpha angle (corresponding roughly to pitch) is different from the true
+      pitch by more than 8.0 degrees.  In other words, points when the FSS is
+      reporting erroneous values.  This is an expected situation outside of the
+      nominal FSS FOV and when the FSS Sun Presence flag is False, but is
+      anomalous for times when FSS Sun Presence is True (which means the OBC
+      is allowed to use the data in active safing monitors).
+      </p>
+      <p>
+      In the first row of plots the red dots correspond to anomalous points
+      where the alpha value is bad and Sun Presence is True.
+      </p>
+      <p>
+      The second row of plots (zoomed to the last 6 months of data) shows that
+      nearly all of the cases with bad alpha and Sun Presence True occur while
+      maneuvering (big blue dots).  The first red X corresponds to the 2012:150
+      safe mode.  The second red X could have caused another safe mode if the
+      FSS FOV extent had not been reduced.
+      </p>
+
+    <table>
+      <tr> <th> FSS-A</th> <th> FSS-B</th> </tr>
+      <tr>
+        <td> <img SRC="fssa/pitch_bad_alpha.png" width="500"><br/> </td>
+        <td> <img SRC="fssb/pitch_bad_alpha.png" width="500"><br/> </td>
+      <tr>
+      </tr>
+        <td> <img SRC="fssa/pitch_bad_alpha_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fssb/pitch_bad_alpha_sun.png" width="500"><br/> </td>
+      </tr>
+    </table>
+
+    <h3> FSS FOV  (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="fssa/pitch_alpha_no_sun.png"-->)</h3>
 
     <p>
-      The plot belows show the sun pitch angle for data points when the FSS reports
+      The plots belows show the sun pitch angle for data points when the FSS reports
       no sun presence in Alpha (AOAPLSUN = "NSUN") or Beta (AOBETSUN =
       "NSUN"). This illustrates the effective FSS field of view outside of
       which the data are marked invalid. The red points correspond to Kalman
@@ -33,25 +67,16 @@
       when NOT in Kalman (corresponding mostly to maneuvers).
     </p>
 
-    <p>
-        The big blue dots show "bad" angle data while in sun presence (AOALPSUN
-      and AOBETSUN both SUN) with the reported FSS angle more than 10 degrees
-      away from the "true" value. These points will be used in the Sun Position
-      Monitor if it is active, which is typically the case for NPM dwells and
-      maneuvers that are entirely within pitch &lt; 139.0 [2]. All of the blue
-      points occurred with the SPM inactive, hence no safe mode entry. The
-      single red X represents the point on 2012:150 during NPM that led to the
-      safe mode entry.
-    </p>
     <table>
+      <tr> <th> FSS-A</th> <th> FSS-B</th> </tr>
       <tr>
-        <td> <img SRC="pitch_bad_alpha.png" width="500"><br/> </td>
-        <td> <img SRC="pitch_bad_alpha_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fssa/pitch_alpha_no_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fssb/pitch_alpha_no_sun.png" width="500"><br/> </td>
       </tr>
       <tr>
-        <td> <img SRC="pitch_alpha_no_sun.png" width="500"><br/> </td>
-        <td> <img SRC="pitch_beta_no_sun.png" width="500"><br/> </td>
-      <tr>
+        <td> <img SRC="fssa/pitch_beta_no_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fssb/pitch_beta_no_sun.png" width="500"><br/> </td>
+      </tr>
     </table>
 
     <h3> Analysis data </h3>

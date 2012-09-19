@@ -15,6 +15,10 @@ INSTALL_WWW = /data/mta4/www/ASPECT/$(TASK)
 install:
 #  Uncomment the lines which apply for this task
 	mkdir -p $(INSTALL_SHARE)
+	mkdir -p $(INSTALL_DATA)/fssa
+	mkdir -p $(INSTALL_DATA)/fssb
+	mkdir -p $(INSTALL_WWW)/fssa
+	mkdir -p $(INSTALL_WWW)/fssb
 	rsync --times --cvs-exclude $(SHARE) $(INSTALL_SHARE)/
 	rsync --times --cvs-exclude $(DATA) $(INSTALL_DATA)/
 	rsync --times $(WWW) $(INSTALL_WWW)
