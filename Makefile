@@ -5,7 +5,7 @@ TASK = fss_check
 FLIGHT_ENV = SKA
 
 # Set the names of all files that get installed
-SHARE = daily_fss.py check_fss.py
+SHARE = daily_fss.py check_fss.py bad_times.py
 DATA = task_schedule.cfg
 WWW = index.html
 

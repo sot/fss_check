@@ -1,9 +1,13 @@
+import sys
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from Ska.Matplotlib import plot_cxctime
 import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
 
+sys.path.insert(0, os.path.dirname(__file__))
 from bad_times import bad_times
 
 plt.rc('legend', fontsize=10)
