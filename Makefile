@@ -17,8 +17,10 @@ install:
 	mkdir -p $(INSTALL_SHARE)
 	mkdir -p $(INSTALL_DATA)/fssa
 	mkdir -p $(INSTALL_DATA)/fssb
+	mkdir -p $(INSTALL_DATA)/fssa_hist
 	mkdir -p $(INSTALL_WWW)/fssa
 	mkdir -p $(INSTALL_WWW)/fssb
+	mkdir -p $(INSTALL_WWW)/fssa_hist
 	rsync --times --cvs-exclude $(SHARE) $(INSTALL_SHARE)/
 	rsync --times --cvs-exclude $(DATA) $(INSTALL_DATA)/
 	rsync --times $(WWW) $(INSTALL_WWW)
