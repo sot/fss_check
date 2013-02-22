@@ -36,16 +36,17 @@ args = parser.parse_args()
 
 stop = DateTime(args.stop)
 
-for fss_dir, get_data in (('fssa', get_fssa_data),
-                          ('fssb', get_fssb_data)):
-    start = DateTime(args.start or stop - 180)
+for fss_dir, get_data, start_t0 in (('fssa', get_fssa_data, '2012:230'),
+                                    ('fssb', get_fssb_data, '2012:230'),
+                                    ('fssa_hist', get_fssa_data, '2010:001')):
+    start = DateTime(args.start or start_t0)
     print 'Processing', fss_dir, start.date, stop.date
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):
         print ' plot_pitches'
         plot_pitches(dat, savefig=True)
 
-    start = DateTime(args.start or stop - 365)
+    start = DateTime(args.start or start_t0)
     print 'Processing', fss_dir, start.date, stop.date
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):

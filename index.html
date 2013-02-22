@@ -13,7 +13,7 @@
     <h3> Summary </h3>
 
     <p>
-      The 2012:150 entry to safe mode was caused by the FSS persistently reporting an
+      The 2012:150 entry to Safe Mode was caused by the FSS persistently reporting an
       incorrect value (~32 degrees vs. expected value of 0 degrees) for the
       Alpha angle (AOALPANG) while also reporting the Sun Presence flags
       (AOALPSUN and AOBETSUN) as SUN (indicating sun is present and data values
@@ -23,6 +23,8 @@
     </p>
 
     <h3> Pitch Angles for Bad Data  (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="fssa/pitch_bad_alpha.png"-->)</h3>
+
+    <h4> (Since 2012:230 when FSS-B was powered on) </h4>
 
       <p>The plots below show the sun pitch angle for data points where the FSS
       alpha angle (corresponding roughly to pitch) is different from the true
@@ -37,11 +39,10 @@
       where the alpha value is bad and Sun Presence is True.
       </p>
       <p>
-      The second row of plots (zoomed to the last 6 months of data) shows that
-      nearly all of the cases with bad alpha and Sun Presence True occur while
-      maneuvering (big blue dots).  The first red X corresponds to the 2012:150
-      safe mode.  The second red X could have caused another safe mode if the
-      FSS FOV extent had not been reduced.
+      The second row of plots shows that nearly all of the cases with bad alpha
+      and Sun Presence True occur while maneuvering (big blue dots).  The first
+      red X corresponds to the 2012:150 Safe Mode.  The second red X could have
+      caused another Safe Mode if the FSS FOV extent had not been reduced.
       </p>
 
     <table>
@@ -58,8 +59,10 @@
 
     <h3> FSS FOV  (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="fssa/pitch_alpha_no_sun.png"-->)</h3>
 
+    <h4> (Since 2012:230 when FSS-B was powered on) </h4>
+
     <p>
-      The plots belows show the sun pitch angle for data points when the FSS reports
+      The plots below show the sun pitch angle for data points when the FSS reports
       no sun presence in Alpha (AOAPLSUN = "NSUN") or Beta (AOBETSUN =
       "NSUN"). This illustrates the effective FSS field of view outside of
       which the data are marked invalid. The red points correspond to Kalman
@@ -76,6 +79,26 @@
       <tr>
         <td> <img SRC="fssa/pitch_beta_no_sun.png" width="500"><br/> </td>
         <td> <img SRC="fssb/pitch_beta_no_sun.png" width="500"><br/> </td>
+      </tr>
+    </table>
+
+    <h3> FSS-A Historical Data (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="fssa/pitch_alpha_no_sun.png"-->)</h3>
+
+    <h4> (Since 2010:001 to illustrate current trend) </h4>
+
+    <p>
+      The plots below are identical to the four plots above for FSS-A but with
+      a different timescale in order to illustrate the current trend in FSS-A.
+    </p>
+
+    <table>
+      <tr>
+        <td> <img SRC="fssa_hist/pitch_bad_alpha.png" width="500"><br/> </td>
+        <td> <img SRC="fssa_hist/pitch_bad_alpha_sun.png" width="500"><br/> </td>
+      </tr>
+      <tr>
+        <td> <img SRC="fssa_hist/pitch_alpha_no_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fssa_hist/pitch_beta_no_sun.png" width="500"><br/> </td>
       </tr>
     </table>
 
