@@ -3,7 +3,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from Ska.Matplotlib import plot_cxctime
+from Ska.Matplotlib import plot_cxctime, cxctime2plotdate
 import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
 
@@ -13,7 +13,37 @@ from bad_times import bad_times
 plt.rc('legend', fontsize=10)
 
 
-def plot_pitches_any_kalman(out, angle_err_lim=8.0, savefig=False):
+def plot_swap_line(primary):
+    swap_date = DateTime('2013:130:20:00:00')
+    swap_x = cxctime2plotdate([swap_date.secs])
+    x0, x1 = plt.xlim()
+    y0, y1 = plt.ylim()
+    plt.plot([swap_x, swap_x], [y0, y1], '--g', lw=2)
+    text_y = y1 - (y1 - y0) * 0.08
+    dx = (x1 - x0) * 0.05
+    label1, label2 = ('FSS-A', 'FSS-B') if primary else ('FSS-B', 'FSS-A')
+    plt.text(swap_x - dx, text_y, label1, ha='right',
+             bbox=dict(facecolor='yellow'))
+    plt.text(swap_x + dx, text_y, label2, ha='left',
+             bbox=dict(facecolor='yellow'))
+
+
+def set_plot_limits(start, stop):
+    if start and stop:
+        x0, x1 = cxctime2plotdate([start.secs, stop.secs])
+        plt.xlim(x0, x1)
+
+    x0, x1 = plt.xlim()
+    dx = (x1 - x0) / 20
+    plt.xlim(x0 - dx, x1 + dx)
+    y0, y1 = plt.ylim()
+    y0 = min(y0, 133.5)
+    dy = (y1 - y0) / 20
+    plt.ylim(y0 - dy, y1 + dy)
+
+
+def plot_pitches_any_kalman(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
+                            primary=True):
     """Plot pitch for all points where alpha_err > angle_err_lim.
     Cyan points are with no sun presence, red are with sun presence.
     Unlike plot_pitches() below there is no distinction made based
@@ -31,27 +61,25 @@ def plot_pitches_any_kalman(out, angle_err_lim=8.0, savefig=False):
                   ('No Sun Presence', 'Sun Presence'))
     plt.figure()
     for filt, mark, mec, label in zipvals:
-        if sum(bad & filt) > 0:
-            plot_cxctime(times[bad & filt], pitch[bad & filt], mark,
+        ok = bad & filt
+        if np.any(ok):
+            plot_cxctime(times[bad & filt], pitch[ok], mark,
                          mec=mec, label=label)
     plt.legend(loc='lower left')
     plt.grid('on')
     plt.title("Pitch for alpha error > {} deg".format(angle_err_lim))
     plt.ylabel('Pitch (deg)')
 
-    x0, x1 = plt.xlim()
-    dx = (x1 - x0) / 20
-    plt.xlim(x0 - dx, x1 + dx)
-    y0, y1 = plt.ylim()
-    y0 = min(y0, 133.5)
-    dy = (y1 - y0) / 20
-    plt.ylim(y0 - dy, y1 + dy)
+    set_plot_limits(start, stop)
+
+    plot_swap_line(primary)
 
     if savefig:
         plt.savefig('pitch_bad_alpha.png')
 
 
-def plot_pitches(out, angle_err_lim=8.0, savefig=False):
+def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
+                 primary=True):
     times = out['times']
     pitch = out['pitch']
     alpha_err = out['alpha'] - out['roll']
@@ -84,47 +112,47 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False):
     for filt, opt1, opt2, label in zipvals:
         plt.figure(1)
         ok = filt & bad_value
-        if sum(ok) > 0:
+        if np.any(ok):
             plot_cxctime(times[ok], pitch[ok], ',',
                          label=label, **opt1)
 
         ok = filt & sun_presence & bad_value
-        if sum(ok) > 0:
+        if np.any(ok):
             plot_cxctime(times[ok], pitch[ok],
                          label=label + ' & Sun Presence True',
                          **opt2)
 
         plt.figure(2)
         ok = filt & ~alpha_sun
-        if sum(ok) > 0:
+        if np.any(ok):
             plot_cxctime(times[ok], pitch[ok], ',',
                          label=label, **opt1)
 
         plt.figure(3)
         ok = filt & ~beta_sun
-        if sum(ok) > 0:
+        if np.any(ok):
             plot_cxctime(times[ok], pitch[ok], ',',
                          label=label, **opt1)
 
     suffs = ('bad_alpha_sun', 'alpha_no_sun', 'beta_no_sun')
     for i, suff in enumerate(suffs):
         plt.figure(i + 1)
-        x0, x1 = plt.xlim()
-        dx = (x1 - x0) / 20
-        plt.xlim(x0 - dx, x1 + dx)
-        y0, y1 = plt.ylim()
-        y0 = min(y0, 133.5)
-        dy = (y1 - y0) / 20
-        plt.ylim(y0 - dy, y1 + dy)
+
+        set_plot_limits(start, stop)
 
         plt.legend(loc='best')
+        plot_swap_line(primary)
+
         if savefig:
             ident = savefig if isinstance(savefig, basestring) else ''
             plt.savefig('pitch_' + ident + suff + '.png')
 
 
-def get_fssa_data(start='2011:001', stop=DateTime().date, interp=4.1,
-             pitch0=100, pitch1=144):
+def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
+                      pitch0=100, pitch1=144):
+    """
+    Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
+    """
     msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
              'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
     print 'fetching data'
@@ -152,7 +180,7 @@ def get_fssa_data(start='2011:001', stop=DateTime().date, interp=4.1,
         # bad (not available in certain subformats including SSR)
         if msid.MSID == 'AOPSSUPM':
             continue
-        print msid.msid, sum(msid.bads[ok])
+        print msid.msid, np.sum(msid.bads[ok])
         bads = bads | msid.bads[ok]
     ok[ok] = ok[ok] & ~bads
 
@@ -179,8 +207,11 @@ def get_fssa_data(start='2011:001', stop=DateTime().date, interp=4.1,
     return out
 
 
-def get_fssb_data(start='2012:230', stop=DateTime().date, interp=4.1,
-             pitch0=100, pitch1=144):
+def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
+                     pitch0=100, pitch1=144):
+    """
+    Get data for the secondary FSS (FSS-B before ~2013:130:20:00:00, FSS-A after)
+    """
     msids = ('aopcadmd', 'aoacaseq', 'pitch', 'roll',
              'aspefsw2a', 'aspefsw4a', 'aspefsw2b', 'aspefsw4b',
              'ccsdsvcd', 'cotlrdsf')
@@ -220,7 +251,7 @@ def get_fssb_data(start='2012:230', stop=DateTime().date, interp=4.1,
         # bad (not available in certain subformats including SSR)
         if msid.MSID == 'AOPSSUPM':
             continue
-        print msid.msid, sum(msid.bads[ok])
+        print msid.msid, np.sum(msid.bads[ok])
         bads = bads | msid.bads[ok]
     ok[ok] = ok[ok] & ~bads
 
