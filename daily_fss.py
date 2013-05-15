@@ -14,7 +14,7 @@ from Chandra.Time import DateTime
 os.environ['ENG_ARCHIVE'] = '/proj/sot/ska/data/eng_archive'
 
 sys.path.insert(0, os.path.dirname(__file__))
-from check_fss import (get_fss_prim_data,
+from check_fss import (get_fss_prim_data, get_fss_sec_data,
                        plot_pitches, plot_pitches_any_kalman)
 
 parser = argparse.ArgumentParser(description='Daily FSS monitor')
@@ -39,17 +39,20 @@ start_hist = DateTime(args.start) if args.start else DateTime('2010:001')
 stop = DateTime(args.stop)
 
 for fss_dir, get_data, start_t0 in (('fss_prim', get_fss_prim_data, start),
+                                    ('fss_sec', get_fss_sec_data, start),
                                     ('fss_prim_hist', get_fss_prim_data, start_hist)):
+    primary = 'prim' in fss_dir
     start = DateTime(args.start or start_t0)
     print 'Processing', fss_dir, start.date, stop.date
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):
         print ' plot_pitches'
-        plot_pitches(dat, savefig=True, start=start, stop=stop)
+        plot_pitches(dat, savefig=True, start=start, stop=stop, primary=primary)
 
     start = DateTime(args.start or start_t0)
     print 'Processing', fss_dir, start.date, stop.date
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):
         print ' plot_pitches_any_kalman'
-        plot_pitches_any_kalman(dat, savefig=True, start=start, stop=stop)
+        plot_pitches_any_kalman(dat, savefig=True, start=start, stop=stop,
+                                primary=primary)

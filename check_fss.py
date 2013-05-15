@@ -13,7 +13,7 @@ from bad_times import bad_times
 plt.rc('legend', fontsize=10)
 
 
-def plot_swap_line():
+def plot_swap_line(primary):
     swap_date = DateTime('2013:130:20:00:00')
     swap_x = cxctime2plotdate([swap_date.secs])
     x0, x1 = plt.xlim()
@@ -21,9 +21,10 @@ def plot_swap_line():
     plt.plot([swap_x, swap_x], [y0, y1], '--g', lw=2)
     text_y = y1 - (y1 - y0) * 0.08
     dx = (x1 - x0) * 0.05
-    plt.text(swap_x - dx, text_y, 'FSS-A', ha='right',
+    label1, label2 = ('FSS-A', 'FSS-B') if primary else ('FSS-B', 'FSS-A')
+    plt.text(swap_x - dx, text_y, label1, ha='right',
              bbox=dict(facecolor='yellow'))
-    plt.text(swap_x + dx, text_y, 'FSS-B', ha='left',
+    plt.text(swap_x + dx, text_y, label2, ha='left',
              bbox=dict(facecolor='yellow'))
 
 
@@ -41,7 +42,8 @@ def set_plot_limits(start, stop):
     plt.ylim(y0 - dy, y1 + dy)
 
 
-def plot_pitches_any_kalman(out, angle_err_lim=8.0, savefig=False, start=None, stop=None):
+def plot_pitches_any_kalman(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
+                            primary=True):
     """Plot pitch for all points where alpha_err > angle_err_lim.
     Cyan points are with no sun presence, red are with sun presence.
     Unlike plot_pitches() below there is no distinction made based
@@ -70,13 +72,14 @@ def plot_pitches_any_kalman(out, angle_err_lim=8.0, savefig=False, start=None, s
 
     set_plot_limits(start, stop)
 
-    plot_swap_line()
+    plot_swap_line(primary)
 
     if savefig:
         plt.savefig('pitch_bad_alpha.png')
 
 
-def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None):
+def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
+                 primary=True):
     times = out['times']
     pitch = out['pitch']
     alpha_err = out['alpha'] - out['roll']
@@ -138,7 +141,7 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None):
         set_plot_limits(start, stop)
 
         plt.legend(loc='best')
-        plot_swap_line()
+        plot_swap_line(primary)
 
         if savefig:
             ident = savefig if isinstance(savefig, basestring) else ''
