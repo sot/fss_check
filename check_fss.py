@@ -190,8 +190,9 @@ def get_fssb_data(start='2012:230', stop=DateTime().date, interp=4.1,
     x = fetch.MSIDset(msids, start, stop)
 
     # Resample MSIDset (values and bad flags) onto a common time sampling
+    # defined by the times when the FSS-secondary values are telemetered.
     print 'starting interpolate'
-    x.interpolate(interp, filter_bad=False)
+    interpolate_times(x, times=x['aspefsw2b'].times, filter_bad=False)
 
     # Remove data during times of known bad or anomalous data (works as of
     # Ska.engarchive 0.19.1)
@@ -201,16 +202,9 @@ def get_fssb_data(start='2012:230', stop=DateTime().date, interp=4.1,
     pitch_range = ((x['pitch'].vals > pitch0) &
                    (x['pitch'].vals < pitch1))
 
-    # Compute minor frame count
-    mf = np.mod(x['ccsdsvcd'].vals, 128)
-    # Account for the fact that data interpolation is not exact and minor frame
-    # count slowly slides
-    actual_mf = [4, 20, 36, 52, 68, 84, 100, 116]
-    for i in actual_mf:
-        mf[abs(mf - i) < 4] = i
-    # Select data in "good" minor frames (every other minor frame has bogus data)
-    # "good" minor frames (4, 36, 68, 100) have mod(mf, 32) = 4
-    good_mf = (np.mod(mf, 32) == 4)
+    # Good data are telemetered at minor frames [0, 32, 64, 96]
+    # Bogus data at [16, 48, 72, 104]
+    good_mf = np.mod(x['ccsdsvcd'].vals, 32) == 0
 
     # Select data in PCAD diagnostic subformat (otherwise no FSS-B telemetry)
     pcad_sfmt = x['cotlrdsf'].vals == 'PCAD'
@@ -249,3 +243,57 @@ def get_fssb_data(start='2012:230', stop=DateTime().date, interp=4.1,
     out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
                         (x['aopcadmd'].vals[ok] == 'NPNT'))
     return out
+
+
+def interpolate_times(msidset, times, filter_bad=True):
+    """Perform nearest-neighbor interpolation of all MSID values in the set
+    to a common time sequence.  The values are updated in-place.
+
+    For each MSID in the set the ``times`` attribute is set to the common
+    time sequence.  In addition a new attribute ``times0`` is defined that
+    stores the nearest neighbor interpolated time, providing the *original*
+    timestamps of each new interpolated value for that MSID.
+
+    By default ``filter_bad`` is True and each MSID has bad data filtered
+    *before* interpolation so that the nearest neighbor interpolation only
+    finds good data.  In this case (or for ``stat`` values which do not
+    have bad values), the ``times0`` attribute can be used to diagnose
+    whether the interpolation is meaningful.  For instance large numbers of
+    identical time stamps in ``times0`` may be a problem.
+
+    If ``filter_bad`` is set to false then data are not filtered.  In this
+    case the MSID ``bads`` values are interpolated as well and provide an
+    indication if the interpolated values are bad.
+
+    :param msidset: input MSIDset
+    :param times: times at which to interpolate the MSIDset (sec)
+    :param filter_bad: filter bad values before interpolating
+    """
+    import Ska.Numpy
+
+    msids = msidset.values()  # MSID objects in the MSIDset
+
+    # Ensure that tstart / tstop is entirely within the range of available
+    # data fetched from the archive.
+    max_fetch_tstart = max(msid.times[0] for msid in msids)
+    min_fetch_tstop = min(msid.times[-1] for msid in msids)
+    istart, istop = np.searchsorted(times, [max_fetch_tstart, min_fetch_tstop])
+
+    msidset.times = times[istart:istop]
+
+    for msid in msids:
+        if filter_bad:
+            msid.filter_bad()
+        indexes = Ska.Numpy.interpolate(np.arange(len(msid.times)),
+                                        msid.times, msidset.times,
+                                        method='nearest', sorted=True)
+        for colname in msid.colnames:
+            colvals = getattr(msid, colname)
+            if colvals is not None:
+                setattr(msid, colname, colvals[indexes])
+
+        # Make a new attribute times0 that stores the nearest neighbor
+        # interpolated times.  Then set the MSID times to be the common
+        # interpolation times.
+        msid.times0 = msid.times
+        msid.times = msidset.times
