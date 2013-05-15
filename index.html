@@ -22,6 +22,18 @@
       angle values caused two checks in the SPM to fail.
     </p>
 
+    <h3> Swap from FSS-A to FSS-B on 2013:130 </h3>
+
+    Due to continuing degradation of FSS-A, on 2013:130 (Friday May 10 around 2000Z),
+    the roles of FSS-A and FSS-B were swapped so that FSS-B is now the primary
+    sensor which is used by the OBC via SPE-A.
+
+    <table>
+     <tr> <th> Date </th> <th> Primary </th> <th> Secondary </th> </tr>
+     <tr> <td> Before 2013:130 </td> <td> FSS-A </td> <td> FSS-B </td> </tr>
+     <tr> <td> After 2013:130 </td> <td> FSS-B </td> <td> FSS-A </td> </tr>
+    </table>
+
     <h3> Pitch Angles for Bad Data  (Updated <!--#CONFIG TIMEFMT="%x"--><!--#flastmod file="fss_prim/pitch_bad_alpha.png"-->)</h3>
 
     <h4> (For the last year) </h4>
@@ -46,14 +58,14 @@
       </p>
 
     <table>
-      <tr> <th> FSS-Primary</th> <th> FSS-B</th> </tr>
+      <tr> <th> FSS-Primary</th> <th> FSS-Secondary</th> </tr>
       <tr>
         <td> <img SRC="fss_prim/pitch_bad_alpha.png" width="500"><br/> </td>
-        <td> <img SRC="fssb/pitch_bad_alpha.png" width="500"><br/> </td>
+        <td> <img SRC="fss_sec/pitch_bad_alpha.png" width="500"><br/> </td>
       <tr>
       </tr>
         <td> <img SRC="fss_prim/pitch_bad_alpha_sun.png" width="500"><br/> </td>
-        <td> <img SRC="fssb/pitch_bad_alpha_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fss_sec/pitch_bad_alpha_sun.png" width="500"><br/> </td>
       </tr>
     </table>
 
@@ -71,14 +83,14 @@
     </p>
 
     <table>
-      <tr> <th> FSS-Primary</th> <th> FSS-B</th> </tr>
+      <tr> <th> FSS-Primary</th> <th> FSS-Secondary</th> </tr>
       <tr>
         <td> <img SRC="fss_prim/pitch_alpha_no_sun.png" width="500"><br/> </td>
-        <td> <img SRC="fssb/pitch_alpha_no_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fss_sec/pitch_alpha_no_sun.png" width="500"><br/> </td>
       </tr>
       <tr>
         <td> <img SRC="fss_prim/pitch_beta_no_sun.png" width="500"><br/> </td>
-        <td> <img SRC="fssb/pitch_beta_no_sun.png" width="500"><br/> </td>
+        <td> <img SRC="fss_sec/pitch_beta_no_sun.png" width="500"><br/> </td>
       </tr>
     </table>
 
