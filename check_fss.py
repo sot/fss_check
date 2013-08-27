@@ -6,12 +6,13 @@ import numpy as np
 from Ska.Matplotlib import plot_cxctime, cxctime2plotdate
 import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
+from kadi import events
 
 sys.path.insert(0, os.path.dirname(__file__))
 from bad_times import bad_times
 
 plt.rc('legend', fontsize=10)
-
+events.eclipses.pad_interval = 1000
 
 def plot_swap_line(primary):
     swap_date = DateTime('2013:130:20:00:00')
@@ -165,7 +166,8 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     # Remove data during times of known bad or anomalous data (works as of
     # Ska.engarchive 0.19.1)
     x.filter_bad_times(table=bad_times)
-    # x.filter_bad_times(table=bad_times)
+    for msid in msids:
+        x[msid].remove_intervals(events.eclipses | events.safe_suns)
 
     # Select data only in a limited pitch range
     ok = ((x['pitch'].vals > pitch0) &
@@ -228,6 +230,8 @@ def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
     # Remove data during times of known bad or anomalous data (works as of
     # Ska.engarchive 0.19.1)
     x.filter_bad_times(table=bad_times)
+    for msid in msids:
+        x[msid].remove_intervals(events.eclipses | events.safe_suns)
 
     # Select data only in a limited pitch range
     pitch_range = ((x['pitch'].vals > pitch0) &
