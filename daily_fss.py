@@ -39,8 +39,9 @@ start_hist = DateTime(args.start) if args.start else DateTime('2010:001')
 stop = DateTime(args.stop)
 
 for fss_dir, get_data, start_t0 in (('fss_prim', get_fss_prim_data, start),
-                                    ('fss_sec', get_fss_sec_data, start),
-                                    ('fss_prim_hist', get_fss_prim_data, start_hist)):
+                                    # ('fss_sec', get_fss_sec_data, start),
+                                    # ('fss_prim_hist', get_fss_prim_data, start_hist)
+                                    ):
     primary = 'prim' in fss_dir
     start = DateTime(args.start or start_t0)
     print 'Processing', fss_dir, start.date, stop.date
