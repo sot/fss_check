@@ -15,6 +15,7 @@ from bad_times import bad_times
 plt.rc('legend', fontsize=10)
 events.eclipses.pad_interval = 1000
 
+
 def plot_swap_line(primary):
     swap_date = DateTime('2013:130:20:00:00')
     swap_x = cxctime2plotdate([swap_date.secs])
@@ -92,7 +93,7 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
         (1, "Pitch for alpha error > {} deg".format(angle_err_lim), None,
          'Pitch (deg)'),
         (2, 'Pitch when alpha sun presence is False', None, 'Pitch (deg)'),
-        (3, 'Pitch when beta sun presence is False', None, 'Pitch (deg)')):
+            (3, 'Pitch when beta sun presence is False', None, 'Pitch (deg)')):
         plt.figure(i)
         plt.clf()
         plt.grid()
@@ -102,11 +103,11 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
             plt.xlabel(xlabel)
 
     zipvals = zip((~out['kalman'],
-                    out['kalman']),
+                   out['kalman']),
                   (dict(color='c', mec='c'),  # Not Kalman, No sun presence
                    dict(color='r', mec='r')),  # Kalman, No sun presence
-                  (dict(color='b', mec='b', fmt='o'), # Not Kalman, Sun presence
-                   dict(color='r', mec='r', fmt='x', mew=2)), # Kalman, Sun presence
+                  (dict(color='b', mec='b', fmt='o'),  # Not Kalman, Sun presence
+                   dict(color='r', mec='r', fmt='x', mew=2)),  # Kalman, Sun presence
                   ('Not Kalman (cyan)',
                    'Kalman (red)'))
     sun_presence = alpha_sun & beta_sun

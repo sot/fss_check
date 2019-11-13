@@ -1,12 +1,14 @@
 from os import chdir, mkdir, path
 
+
 def mkdir_cd(dir):
     # Make a directory (if doesn't already exist) and cd to it.
     if not path.exists(dir):
         mkdir(dir)
-    chdir(dir) 
+    chdir(dir)
 
-exec(compile(open('check_fss.py').read(), 'check_fss.py', 'exec'))    
+
+exec(compile(open('check_fss.py').read(), 'check_fss.py', 'exec'))
 mkdir_cd('fss_a')
 fss_a = get_fssa_data(start='2011:001')
 plot_pitches(fss_a, savefig=True)
