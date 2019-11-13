@@ -44,16 +44,16 @@ for fss_dir, get_data, start_t0 in (('fss_prim', get_fss_prim_data, start),
                                     ):
     primary = 'prim' in fss_dir
     start = DateTime(args.start or start_t0)
-    print 'Processing', fss_dir, start.date, stop.date
+    print('Processing', fss_dir, start.date, stop.date)
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):
-        print ' plot_pitches'
+        print(' plot_pitches')
         plot_pitches(dat, savefig=True, start=start, stop=stop, primary=primary)
 
     start = DateTime(args.start or start_t0)
-    print 'Processing', fss_dir, start.date, stop.date
+    print('Processing', fss_dir, start.date, stop.date)
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):
-        print ' plot_pitches_any_kalman'
+        print(' plot_pitches_any_kalman')
         plot_pitches_any_kalman(dat, savefig=True, start=start, stop=stop,
                                 primary=primary)

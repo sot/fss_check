@@ -6,7 +6,7 @@ def mkdir_cd(dir):
         mkdir(dir)
     chdir(dir) 
 
-execfile('check_fss.py')    
+exec(compile(open('check_fss.py').read(), 'check_fss.py', 'exec'))    
 mkdir_cd('fss_a')
 fss_a = get_fssa_data(start='2011:001')
 plot_pitches(fss_a, savefig=True)

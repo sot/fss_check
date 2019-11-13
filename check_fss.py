@@ -8,7 +8,8 @@ import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
 from kadi import events
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(__file__))  # noqa
+
 from bad_times import bad_times
 
 plt.rc('legend', fontsize=10)
@@ -145,7 +146,7 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
         plot_swap_line(primary)
 
         if savefig:
-            ident = savefig if isinstance(savefig, basestring) else ''
+            ident = savefig if isinstance(savefig, str) else ''
             plt.savefig('pitch_' + ident + suff + '.png')
 
 
@@ -156,11 +157,11 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     """
     msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
              'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
-    print 'fetching data'
+    print('fetching data')
     x = fetch.MSIDset(msids, start, stop)
 
     # Resample MSIDset (values and bad flags) onto a common time sampling
-    print 'starting interpolate'
+    print('starting interpolate')
     x.interpolate(interp, filter_bad=False)
 
     # Remove data during times of known bad or anomalous data (works as of
@@ -177,12 +178,12 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     # to further filter the data sample
     nvals = np.sum(ok)
     bads = np.zeros(nvals, dtype=bool)
-    for msid in x.values():
+    for msid in list(x.values()):
         # Ignore sun position monitor for bad data because it is frequently
         # bad (not available in certain subformats including SSR)
         if msid.MSID == 'AOPSSUPM':
             continue
-        print msid.msid, np.sum(msid.bads[ok])
+        print(msid.msid, np.sum(msid.bads[ok]))
         bads = bads | msid.bads[ok]
     ok[ok] = ok[ok] & ~bads
 
@@ -193,7 +194,7 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     dtypes = ('f8',
               'f4', 'f4', 'f4', 'f4',
               'bool', 'bool', 'bool', 'bool', 'bool', 'bool')
-    out = np.empty(nvals, dtype=zip(colnames, dtypes))
+    out = np.empty(nvals, dtype=list(zip(colnames, dtypes)))
 
     out['times'][:] = x['pitch'].times[ok]
     out['pitch'][:] = x['pitch'].vals[ok]
@@ -217,14 +218,14 @@ def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
     msids = ('aopcadmd', 'aoacaseq', 'pitch', 'roll',
              'aspefsw2a', 'aspefsw4a', 'aspefsw2b', 'aspefsw4b',
              'ccsdsvcd', 'cotlrdsf')
-    print 'fetching data'
+    print('fetching data')
     if DateTime(start).date < '2012:230':
         start = '2012:230'
     x = fetch.MSIDset(msids, start, stop)
 
     # Resample MSIDset (values and bad flags) onto a common time sampling
     # defined by the times when the FSS-secondary values are telemetered.
-    print 'starting interpolate'
+    print('starting interpolate')
     interpolate_times(x, times=x['aspefsw2b'].times, filter_bad=False)
 
     # Remove data during times of known bad or anomalous data (works as of
@@ -250,12 +251,12 @@ def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
     # to further filter the data sample
     nvals = np.sum(ok)
     bads = np.zeros(nvals, dtype=bool)
-    for msid in x.values():
+    for msid in list(x.values()):
         # Ignore sun position monitor for bad data because it is frequently
         # bad (not available in certain subformats including SSR)
         if msid.MSID == 'AOPSSUPM':
             continue
-        print msid.msid, np.sum(msid.bads[ok])
+        print(msid.msid, np.sum(msid.bads[ok]))
         bads = bads | msid.bads[ok]
     ok[ok] = ok[ok] & ~bads
 
@@ -266,7 +267,7 @@ def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
     dtypes = ('f8',
               'f4', 'f4', 'f4', 'f4',
               'bool', 'bool', 'bool', 'bool', 'bool', 'bool')
-    out = np.empty(nvals, dtype=zip(colnames, dtypes))
+    out = np.empty(nvals, dtype=list(zip(colnames, dtypes)))
 
     out['times'][:] = x['pitch'].times[ok]
     out['pitch'][:] = x['pitch'].vals[ok]
@@ -306,7 +307,7 @@ def interpolate_times(msidset, times, filter_bad=True):
     """
     import Ska.Numpy
 
-    msids = msidset.values()  # MSID objects in the MSIDset
+    msids = list(msidset.values())  # MSID objects in the MSIDset
 
     # Ensure that tstart / tstop is entirely within the range of available
     # data fetched from the archive.
