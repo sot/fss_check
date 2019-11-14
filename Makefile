@@ -1,5 +1,5 @@
 # Set the task name
-TASK = fss_check
+TASK = fss_check3
 
 # Uncomment the correct choice indicating either SKA or TST flight environment
 FLIGHT_ENV = SKA
