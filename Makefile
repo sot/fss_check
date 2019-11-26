@@ -1,5 +1,5 @@
 # Set the task name
-TASK = fss_check
+TASK = fss_check3
 
 # Uncomment the correct choice indicating either SKA or TST flight environment
 FLIGHT_ENV = SKA
@@ -15,12 +15,12 @@ INSTALL_WWW = /data/mta4/www/ASPECT/$(TASK)
 install:
 #  Uncomment the lines which apply for this task
 	mkdir -p $(INSTALL_SHARE)
-	mkdir -p $(INSTALL_DATA)/fssa
-	mkdir -p $(INSTALL_DATA)/fssb
-	mkdir -p $(INSTALL_DATA)/fssa_hist
-	mkdir -p $(INSTALL_WWW)/fssa
-	mkdir -p $(INSTALL_WWW)/fssb
-	mkdir -p $(INSTALL_WWW)/fssa_hist
+	mkdir -p $(INSTALL_DATA)/fss_prim
+	mkdir -p $(INSTALL_DATA)/fss_sec
+	mkdir -p $(INSTALL_DATA)/fss_prim_hist
+	mkdir -p $(INSTALL_WWW)/fss_prim
+	mkdir -p $(INSTALL_WWW)/fss_sec
+	mkdir -p $(INSTALL_WWW)/fss_prim_hist
 	rsync --times --cvs-exclude $(SHARE) $(INSTALL_SHARE)/
 	rsync --times --cvs-exclude $(DATA) $(INSTALL_DATA)/
 	rsync --times $(WWW) $(INSTALL_WWW)

@@ -5,16 +5,13 @@ import os
 import argparse
 
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # noqa
 
 import Ska.File
 from Chandra.Time import DateTime
 
-# Allow this script to fetch if being run in a development Ska
-os.environ['ENG_ARCHIVE'] = '/proj/sot/ska/data/eng_archive'
-
-sys.path.insert(0, os.path.dirname(__file__))
-from check_fss import (get_fss_prim_data, get_fss_sec_data,
+sys.path.insert(0, os.path.dirname(__file__))  # noqa
+from check_fss import (get_fss_prim_data,
                        plot_pitches, plot_pitches_any_kalman)
 
 parser = argparse.ArgumentParser(description='Daily FSS monitor')
@@ -44,16 +41,17 @@ for fss_dir, get_data, start_t0 in (('fss_prim', get_fss_prim_data, start),
                                     ):
     primary = 'prim' in fss_dir
     start = DateTime(args.start or start_t0)
-    print 'Processing', fss_dir, start.date, stop.date
+    print('Processing', fss_dir, start.date, stop.date)
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):
-        print ' plot_pitches'
-        plot_pitches(dat, savefig=True, start=start, stop=stop, primary=primary)
+        print(' plot_pitches')
+        plot_pitches(dat, savefig=True, start=start, stop=stop, primary=primary,
+                     start_suffix=args.start)
 
     start = DateTime(args.start or start_t0)
-    print 'Processing', fss_dir, start.date, stop.date
+    print('Processing', fss_dir, start.date, stop.date)
     dat = get_data(start, stop, interp=args.interp)
     with Ska.File.chdir(os.path.join(args.out, fss_dir)):
-        print ' plot_pitches_any_kalman'
+        print(' plot_pitches_any_kalman')
         plot_pitches_any_kalman(dat, savefig=True, start=start, stop=stop,
-                                primary=primary)
+                                primary=primary, start_suffix=args.start)
