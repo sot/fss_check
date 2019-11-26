@@ -7,6 +7,7 @@ from Ska.Matplotlib import plot_cxctime, cxctime2plotdate
 import Ska.engarchive.fetch_eng as fetch
 from Chandra.Time import DateTime
 from kadi import events
+from astropy.table import Table
 import matplotlib.style
 matplotlib.style.use('classic')
 
@@ -72,9 +73,24 @@ def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
             print(label, np.count_nonzero(ok))
             plot_cxctime(times[ok], pitch[ok], mark,
                          mec=mec, label=label, alpha=alpha)
+
+            # Find just the > 2.0 points and make a table
+            if mark == 'bo':
+                tbl = Table({'date': DateTime(times).date[ok],
+                             'pitch': pitch[ok],
+                             'alpha_err': alpha_err[ok],
+                             'sun': sun[ok]})
+                tbl.sort('date')
+                tbl['pitch'].format = '%.3f'
+                tbl['alpha_err'].format = '%.3f'
+                tbl = tbl[::-1]
+                tbl.write('bad_alpha_err.txt', format='ascii.fixed_width_two_line', overwrite=True)
+
+    last_date = DateTime(np.max(times)).date[:-4]
+
     plt.legend(loc='lower left')
     plt.grid('on')
-    plt.title('Pitch for alpha error > threshold')
+    plt.title(f'Pitch for alpha error > threshold (through {last_date})')
     plt.ylabel('Pitch (deg)')
 
     set_plot_limits(start, stop)
