@@ -18,8 +18,6 @@ from bad_times import bad_times
 plt.rc('legend', fontsize=10)
 events.eclipses.pad_interval = 1000
 
-fetch.data_source.set('cxc', 'maude')
-
 def plot_swap_line(primary):
     swap_date = DateTime('2013:130:20:00:00')
     swap_x = cxctime2plotdate([swap_date.secs])
