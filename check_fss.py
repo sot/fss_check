@@ -42,7 +42,7 @@ def set_plot_limits(start, stop):
     dx = (x1 - x0) / 20
     plt.xlim(x0 - dx, x1 + dx)
     y0, y1 = plt.ylim()
-    y0 = min(y0, 133.5)
+    y0 = min(y0, 133.0)
     dy = (y1 - y0) / 20
     plt.ylim(y0 - dy, y1 + dy)
 
@@ -60,8 +60,8 @@ def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
     sun = out['alpha_sun'] & out['beta_sun']
 
     vals = [(~sun, 'c.', 'c', 1.0, 'No Sun Presense', 8.0),
-            (sun, 'bo', 'b', 0.5, 'Sun Presense (2.0 < error <= 4.0 deg)', 2.0),
-            (sun, 'mo', 'm', 0.7, 'Sun Presense (4.0 < error <= 8.0 deg)', 4.0),
+            # (sun, 'bo', 'b', 0.5, 'Sun Presense (2.0 < error <= 4.0 deg)', 2.0),
+            # (sun, 'mo', 'm', 0.7, 'Sun Presense (4.0 < error <= 8.0 deg)', 4.0),
             (sun, 'ro', 'r', 1.0, 'Sun Presense (error > 8.0 deg)', 8.0),
             ]
     plt.figure()
