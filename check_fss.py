@@ -1,6 +1,7 @@
 import sys
 import os
 
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from Ska.Matplotlib import plot_cxctime, cxctime2plotdate
@@ -42,13 +43,14 @@ def set_plot_limits(start, stop):
     dx = (x1 - x0) / 20
     plt.xlim(x0 - dx, x1 + dx)
     y0, y1 = plt.ylim()
-    y0 = min(y0, 133.5)
+    y0 = min(y0, 133.0)
     dy = (y1 - y0) / 20
     plt.ylim(y0 - dy, y1 + dy)
 
 
 def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
-                            primary=True, start_suffix=''):
+                            primary=True, start_suffix='', midrange=True,
+                            outdir='.'):
     """Plot pitch for all points where alpha_err > angle_err_lim.
     Cyan points are with no sun presence, red are with sun presence.
     Unlike plot_pitches() below there is no distinction made based
@@ -59,11 +61,17 @@ def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
     alpha_err = out['alpha'] - out['roll']
     sun = out['alpha_sun'] & out['beta_sun']
 
-    vals = [(~sun, 'c.', 'c', 1.0, 'No Sun Presense', 8.0),
-            (sun, 'bo', 'b', 0.5, 'Sun Presense (2.0 < error <= 4.0 deg)', 2.0),
-            (sun, 'mo', 'm', 0.7, 'Sun Presense (4.0 < error <= 8.0 deg)', 4.0),
-            (sun, 'ro', 'r', 1.0, 'Sun Presense (error > 8.0 deg)', 8.0),
+    if midrange:
+        vals = [(~sun, 'c.', 'c', 1.0, 'No Sun Presense', 8.0),
+                (sun, 'bo', 'b', 0.5, 'Sun Presense (2.0 < error <= 4.0 deg)', 2.0),
+                (sun, 'mo', 'm', 0.7, 'Sun Presense (4.0 < error <= 8.0 deg)', 4.0),
+                (sun, 'ro', 'r', 1.0, 'Sun Presense (error > 8.0 deg)', 8.0),
             ]
+    else:
+        vals = [(~sun, 'c.', 'c', 1.0, 'No Sun Presense', 8.0),
+                (sun, 'ro', 'r', 1.0, 'Sun Presense (error > 8.0 deg)', 8.0),
+        ]
+
     plt.figure()
     for filt, mark, mec, alpha, label, err_min in vals:
         ok = (abs(alpha_err) > err_min) & filt
@@ -82,7 +90,8 @@ def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
                 tbl['pitch'].format = '%.3f'
                 tbl['alpha_err'].format = '%.3f'
                 tbl = tbl[::-1]
-                tbl.write('bad_alpha_err.txt', format='ascii.fixed_width_two_line', overwrite=True)
+                tbl.write(Path(outdir) / 'bad_alpha_err.txt', format='ascii.fixed_width_two_line',
+                          overwrite=True)
 
     last_date = DateTime(np.max(times)).date[:-4]
 
@@ -94,9 +103,8 @@ def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
     set_plot_limits(start, stop)
 
     plot_swap_line(primary)
-
     if savefig:
-        plt.savefig(f'pitch_bad_alpha{start_suffix}.png')
+        plt.savefig(Path(outdir) / f'pitch_bad_alpha{start_suffix}.png')
 
 
 def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
