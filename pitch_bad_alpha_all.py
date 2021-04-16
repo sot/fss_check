@@ -29,7 +29,7 @@ def main():
         if not Path(fname).exists() or year == stop - 1:
             dat = check_fss.get_fss_prim_data(start=f'{year}:001',
                                               stop=f'{year + 1}:001')
-            Table(dat).write(fname)
+            Table(dat).write(fname, overwrite=True)
         files.append(fname)
 
     bigdat = vstack([Table.read(file) for file in files])
