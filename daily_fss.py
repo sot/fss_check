@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 
-import sys
-import os
 import argparse
+import os
+import sys
 
 import matplotlib
+
 matplotlib.use('Agg')  # noqa
 
+from cheta import fetch  # noqa: E402
 import Ska.File
 from Chandra.Time import DateTime
 
 sys.path.insert(0, os.path.dirname(__file__))  # noqa
-from check_fss import (get_fss_prim_data,
-                       plot_pitches, plot_pitches_any_kalman)
+from check_fss import get_fss_prim_data, plot_pitches, plot_pitches_any_kalman
 
 parser = argparse.ArgumentParser(description='Daily FSS monitor')
 parser.add_argument('--out',
@@ -29,7 +30,14 @@ parser.add_argument('--interp',
                     type=float,
                     default=4.1,
                     help='Telemetry interpolation (secs)')
+parser.add_argument('--use-maude',
+                    action='store_true',
+                    default=False,
+                    help='Use MAUDE to get most recent data')
 args = parser.parse_args()
+
+if args.use_maude:
+    fetch.data_source.set('cxc', 'maude')
 
 start = DateTime(args.start) if args.start else (DateTime() - 360.0)
 start_hist = DateTime(args.start) if args.start else DateTime('2010:001')

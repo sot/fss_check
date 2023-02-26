@@ -86,7 +86,7 @@ def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
 
     last_date = DateTime(np.max(times)).date[:-4]
 
-    plt.legend(loc='lower left')
+    plt.legend(loc='best', fancybox=True, framealpha=0.5)
     plt.grid('on')
     plt.title(f'Pitch for alpha error > threshold (through {last_date})')
     plt.ylabel('Pitch (deg)')
@@ -174,10 +174,12 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     """
     Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
     """
-    msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch', 'roll',
+    msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch_comp', 'roll_comp',
              'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
     print('fetching data')
     x = fetch.MSIDset(msids, start, stop)
+    x['pitch'] = x['pitch_comp']
+    x['roll'] = x['roll_comp']
 
     # Resample MSIDset (values and bad flags) onto a common time sampling
     print('starting interpolate')
@@ -220,9 +222,9 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     out['roll'][:] = x['roll'].vals[ok]
     out['alpha'][:] = -x['aoalpang'].vals[ok]
     out['beta'][:] = 90 - x['aobetang'].vals[ok]
-    out['alpha_sun'][:] = x['aoalpsun'].vals[ok] == 'SUN '
-    out['beta_sun'][:] = x['aobetsun'].vals[ok] == 'SUN '
-    out['spm_act'][:] = x['aopssupm'].vals[ok] == 'ACT '
+    out['alpha_sun'][:] = np.char.strip(x['aoalpsun'].vals[ok]) == 'SUN'
+    out['beta_sun'][:] = np.char.strip(x['aobetsun'].vals[ok]) == 'SUN'
+    out['spm_act'][:] = np.char.strip(x['aopssupm'].vals[ok]) == 'ACT'
     out['spm_act_bad'][:] = x['aopssupm'].bads[ok]
     out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
                         (x['aopcadmd'].vals[ok] == 'NPNT'))
