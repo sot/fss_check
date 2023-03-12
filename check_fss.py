@@ -9,7 +9,7 @@ from Chandra.Time import DateTime
 from kadi import events
 from astropy.table import Table
 import matplotlib.style
-matplotlib.style.use('classic')
+matplotlib.style.use('bmh')
 
 sys.path.insert(0, os.path.dirname(__file__))  # noqa
 
@@ -170,11 +170,11 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
 
 
 def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
-                      pitch0=100, pitch1=144):
+                      pitch0=40, pitch1=144):
     """
     Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
     """
-    msids = ('aopssupm', 'aopcadmd', 'aoacaseq', 'pitch_comp', 'roll_comp',
+    msids = ('aopcadmd', 'aoacaseq', 'pitch_comp', 'roll_comp',
              'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
     print('fetching data')
     x = fetch.MSIDset(msids, start, stop)
@@ -211,7 +211,7 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     nvals = np.sum(ok)
     colnames = ('times',
                 'pitch', 'roll', 'alpha', 'beta',
-                'alpha_sun', 'beta_sun', 'spm_act', 'spm_act_bad', 'kalman')
+                'alpha_sun', 'beta_sun', 'kalman')
     dtypes = ('f8',
               'f4', 'f4', 'f4', 'f4',
               'bool', 'bool', 'bool', 'bool', 'bool', 'bool')
@@ -224,8 +224,6 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     out['beta'][:] = 90 - x['aobetang'].vals[ok]
     out['alpha_sun'][:] = np.char.strip(x['aoalpsun'].vals[ok]) == 'SUN'
     out['beta_sun'][:] = np.char.strip(x['aobetsun'].vals[ok]) == 'SUN'
-    out['spm_act'][:] = np.char.strip(x['aopssupm'].vals[ok]) == 'ACT'
-    out['spm_act_bad'][:] = x['aopssupm'].bads[ok]
     out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
                         (x['aopcadmd'].vals[ok] == 'NPNT'))
     return out

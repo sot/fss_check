@@ -8,12 +8,16 @@ import matplotlib
 
 matplotlib.use('Agg')  # noqa
 
-from cheta import fetch  # noqa: E402
+from cheta import fetch_eng as fetch  # noqa: E402
 import Ska.File
 from Chandra.Time import DateTime
 
 sys.path.insert(0, os.path.dirname(__file__))  # noqa
 from check_fss import get_fss_prim_data, plot_pitches, plot_pitches_any_kalman
+
+fetch.add_logging_handler()
+import maude
+maude.set_logger_level('DEBUG')
 
 parser = argparse.ArgumentParser(description='Daily FSS monitor')
 parser.add_argument('--out',
@@ -37,11 +41,12 @@ parser.add_argument('--use-maude',
 args = parser.parse_args()
 
 if args.use_maude:
-    fetch.data_source.set('cxc', 'maude')
+    fetch.data_source.set('cxc', 'maude allow_subset=False')
 
-start = DateTime(args.start) if args.start else (DateTime() - 360.0)
+start = DateTime(args.start) if args.start else (DateTime() - 7.0)
 start_hist = DateTime(args.start) if args.start else DateTime('2010:001')
 stop = DateTime(args.stop)
+print(f"Processing {start.date} to {stop.date}")
 
 for fss_dir, get_data, start_t0 in (('fss_prim', get_fss_prim_data, start),
                                     # ('fss_sec', get_fss_sec_data, start),
