@@ -1,36 +1,33 @@
-import sys
-import os
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import matplotlib.pyplot as plt
+import matplotlib.style
 import numpy as np
-from Ska.Matplotlib import plot_cxctime, cxctime2plotdate
 import Ska.engarchive.fetch_eng as fetch
+from astropy.table import Table
 from Chandra.Time import DateTime
 from kadi import events
-from astropy.table import Table
-import matplotlib.style
-matplotlib.style.use('bmh')
+from Ska.Matplotlib import cxctime2plotdate, plot_cxctime
 
-sys.path.insert(0, os.path.dirname(__file__))  # noqa
+from .bad_times import bad_times
 
-from bad_times import bad_times
+matplotlib.style.use("bmh")
 
-plt.rc('legend', fontsize=10)
+plt.rc("legend", fontsize=10)
 events.eclipses.pad_interval = 1000
 
+
 def plot_swap_line(primary):
-    swap_date = DateTime('2013:130:20:00:00')
+    swap_date = DateTime("2013:130:20:00:00")
     swap_x = cxctime2plotdate([swap_date.secs])
     x0, x1 = plt.xlim()
     y0, y1 = plt.ylim()
-    plt.plot([swap_x, swap_x], [y0, y1], '--g', lw=2)
+    plt.plot([swap_x, swap_x], [y0, y1], "--g", lw=2)
     text_y = y1 - (y1 - y0) * 0.08
     dx = (x1 - x0) * 0.05
-    label1, label2 = ('FSS-A', 'FSS-B') if primary else ('FSS-B', 'FSS-A')
-    plt.text(swap_x - dx, text_y, label1, ha='right',
-             bbox=dict(facecolor='yellow'))
-    plt.text(swap_x + dx, text_y, label2, ha='left',
-             bbox=dict(facecolor='yellow'))
+    label1, label2 = ("FSS-A", "FSS-B") if primary else ("FSS-B", "FSS-A")
+    plt.text(swap_x - dx, text_y, label1, ha="right", bbox=dict(facecolor="yellow"))
+    plt.text(swap_x + dx, text_y, label2, ha="left", bbox=dict(facecolor="yellow"))
 
 
 def set_plot_limits(start, stop):
@@ -47,71 +44,92 @@ def set_plot_limits(start, stop):
     plt.ylim(y0 - dy, y1 + dy)
 
 
-def plot_pitches_any_kalman(out, savefig=False, start=None, stop=None,
-                            primary=True, start_suffix=''):
+def plot_pitches_any_kalman(
+    out, savefig=False, start=None, stop=None, primary=True, start_suffix=""
+):
     """Plot pitch for all points where alpha_err > angle_err_lim.
     Cyan points are with no sun presence, red are with sun presence.
     Unlike plot_pitches() below there is no distinction made based
     on the kalman state.
     """
-    times = out['times']
-    pitch = out['pitch']
-    alpha_err = out['alpha'] - out['roll']
-    sun = out['alpha_sun'] & out['beta_sun']
+    times = out["times"]
+    pitch = out["pitch"]
+    alpha_err = out["alpha"] - out["roll"]
+    sun = out["alpha_sun"] & out["beta_sun"]
 
-    vals = [(~sun, 'c.', 'c', 1.0, 'No Sun Presense', 8.0),
-            (sun, 'bo', 'b', 0.5, 'Sun Presense (2.0 < error <= 4.0 deg)', 2.0),
-            (sun, 'mo', 'm', 0.7, 'Sun Presense (4.0 < error <= 8.0 deg)', 4.0),
-            (sun, 'ro', 'r', 1.0, 'Sun Presense (error > 8.0 deg)', 8.0),
-            ]
+    vals = [
+        (~sun, "c.", "c", 1.0, "No Sun Presense", 8.0),
+        (sun, "bo", "b", 0.5, "Sun Presense (2.0 < error <= 4.0 deg)", 2.0),
+        (sun, "mo", "m", 0.7, "Sun Presense (4.0 < error <= 8.0 deg)", 4.0),
+        (sun, "ro", "r", 1.0, "Sun Presense (error > 8.0 deg)", 8.0),
+    ]
     plt.figure()
     for filt, mark, mec, alpha, label, err_min in vals:
         ok = (abs(alpha_err) > err_min) & filt
         if np.any(ok):
             print(label, np.count_nonzero(ok))
-            plot_cxctime(times[ok], pitch[ok], mark,
-                         mec=mec, label=label, alpha=alpha)
+            plot_cxctime(times[ok], pitch[ok], mark, mec=mec, label=label, alpha=alpha)
 
             # Find just the > 2.0 points and make a table
-            if mark == 'bo':
-                tbl = Table({'date': DateTime(times).date[ok],
-                             'pitch': pitch[ok],
-                             'alpha_err': alpha_err[ok],
-                             'sun': sun[ok]})
-                tbl.sort('date')
-                tbl['pitch'].format = '%.3f'
-                tbl['alpha_err'].format = '%.3f'
+            if mark == "bo":
+                tbl = Table(
+                    {
+                        "date": DateTime(times).date[ok],
+                        "pitch": pitch[ok],
+                        "alpha_err": alpha_err[ok],
+                        "sun": sun[ok],
+                    }
+                )
+                tbl.sort("date")
+                tbl["pitch"].format = "%.3f"
+                tbl["alpha_err"].format = "%.3f"
                 tbl = tbl[::-1]
-                tbl.write('bad_alpha_err.txt', format='ascii.fixed_width_two_line', overwrite=True)
+                tbl.write(
+                    "bad_alpha_err.txt",
+                    format="ascii.fixed_width_two_line",
+                    overwrite=True,
+                )
 
     last_date = DateTime(np.max(times)).date[:-4]
 
-    plt.legend(loc='best', fancybox=True, framealpha=0.5)
-    plt.grid('on')
-    plt.title(f'Pitch for alpha error > threshold (through {last_date})')
-    plt.ylabel('Pitch (deg)')
+    plt.legend(loc="best", fancybox=True, framealpha=0.5)
+    plt.grid("on")
+    plt.title(f"Pitch for alpha error > threshold (through {last_date})")
+    plt.ylabel("Pitch (deg)")
 
     set_plot_limits(start, stop)
 
     plot_swap_line(primary)
 
     if savefig:
-        plt.savefig(f'pitch_bad_alpha{start_suffix}.png')
+        plt.savefig(f"pitch_bad_alpha{start_suffix}.png")
 
 
-def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
-                 primary=True, start_suffix=''):
-    times = out['times']
-    pitch = out['pitch']
-    alpha_err = out['alpha'] - out['roll']
-    alpha_sun = out['alpha_sun']
-    beta_sun = out['beta_sun']
+def plot_pitches(
+    out,
+    angle_err_lim=8.0,
+    savefig=False,
+    start=None,
+    stop=None,
+    primary=True,
+    start_suffix="",
+):
+    times = out["times"]
+    pitch = out["pitch"]
+    alpha_err = out["alpha"] - out["roll"]
+    alpha_sun = out["alpha_sun"]
+    beta_sun = out["beta_sun"]
 
     for i, title, xlabel, ylabel in (
-        (1, "Pitch for alpha error > {} deg".format(angle_err_lim), None,
-         'Pitch (deg)'),
-        (2, 'Pitch when alpha sun presence is False', None, 'Pitch (deg)'),
-            (3, 'Pitch when beta sun presence is False', None, 'Pitch (deg)')):
+        (
+            1,
+            "Pitch for alpha error > {} deg".format(angle_err_lim),
+            None,
+            "Pitch (deg)",
+        ),
+        (2, "Pitch when alpha sun presence is False", None, "Pitch (deg)"),
+        (3, "Pitch when beta sun presence is False", None, "Pitch (deg)"),
+    ):
         plt.figure(i)
         plt.clf()
         plt.grid()
@@ -120,69 +138,80 @@ def plot_pitches(out, angle_err_lim=8.0, savefig=False, start=None, stop=None,
         if xlabel:
             plt.xlabel(xlabel)
 
-    zipvals = zip((~out['kalman'],
-                   out['kalman']),
-                  (dict(color='c', mec='c'),  # Not Kalman, No sun presence
-                   dict(color='r', mec='r')),  # Kalman, No sun presence
-                  (dict(color='b', mec='b', fmt='o'),  # Not Kalman, Sun presence
-                   dict(color='r', mec='r', fmt='x', mew=2)),  # Kalman, Sun presence
-                  ('Not Kalman (cyan)',
-                   'Kalman (red)'))
+    zipvals = zip(
+        (~out["kalman"], out["kalman"]),
+        (
+            dict(color="c", mec="c"),  # Not Kalman, No sun presence
+            dict(color="r", mec="r"),
+        ),  # Kalman, No sun presence
+        (
+            dict(color="b", mec="b", fmt="o"),  # Not Kalman, Sun presence
+            dict(color="r", mec="r", fmt="x", mew=2),
+        ),  # Kalman, Sun presence
+        ("Not Kalman (cyan)", "Kalman (red)"),
+    )
     sun_presence = alpha_sun & beta_sun
     bad_value = abs(alpha_err) > angle_err_lim
     for filt, opt1, opt2, label in zipvals:
         plt.figure(1)
         ok = filt & bad_value
         if np.any(ok):
-            plot_cxctime(times[ok], pitch[ok], ',',
-                         label=label, **opt1)
+            plot_cxctime(times[ok], pitch[ok], ",", label=label, **opt1)
 
         ok = filt & sun_presence & bad_value
         if np.any(ok):
-            plot_cxctime(times[ok], pitch[ok],
-                         label=label + ' & Sun Presence True',
-                         **opt2)
+            plot_cxctime(
+                times[ok], pitch[ok], label=label + " & Sun Presence True", **opt2
+            )
 
         plt.figure(2)
         ok = filt & ~alpha_sun
         if np.any(ok):
-            plot_cxctime(times[ok], pitch[ok], ',',
-                         label=label, **opt1)
+            plot_cxctime(times[ok], pitch[ok], ",", label=label, **opt1)
 
         plt.figure(3)
         ok = filt & ~beta_sun
         if np.any(ok):
-            plot_cxctime(times[ok], pitch[ok], ',',
-                         label=label, **opt1)
+            plot_cxctime(times[ok], pitch[ok], ",", label=label, **opt1)
 
-    suffs = ('bad_alpha_sun', 'alpha_no_sun', 'beta_no_sun')
+    suffs = ("bad_alpha_sun", "alpha_no_sun", "beta_no_sun")
     for i, suff in enumerate(suffs):
         plt.figure(i + 1)
 
         set_plot_limits(start, stop)
 
-        plt.legend(loc='best')
+        plt.legend(loc="best")
         plot_swap_line(primary)
 
         if savefig:
-            ident = savefig if isinstance(savefig, str) else ''
-            plt.savefig('pitch_' + ident + suff + start_suffix + '.png')
+            ident = savefig if isinstance(savefig, str) else ""
+            plt.savefig("pitch_" + ident + suff + start_suffix + ".png")
 
 
-def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
-                      pitch0=40, pitch1=144):
+def get_fss_prim_data(
+    start="2011:001",
+    stop=DateTime().date,
+    interp=4.1,
+    pitch0=40,
+    pitch1=144,
+    use_maude=False,
+):
     """
     Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
     """
-    msids = ('aopcadmd', 'aoacaseq', 'pitch_comp', 'roll_comp',
-             'aoalpang', 'aobetang', 'aoalpsun', 'aobetsun')
-    print('fetching data')
+    msids = ("aopcadmd", "aoacaseq", "aoalpang", "aobetang", "aoalpsun", "aobetsun")
+    if use_maude:
+        msids += ("pitch_comp", "roll_comp")
+    else:
+        msids += ("pitch", "roll")
+    print("fetching data")
     x = fetch.MSIDset(msids, start, stop)
-    x['pitch'] = x['pitch_comp']
-    x['roll'] = x['roll_comp']
+    if use_maude:
+        x["pitch"] = x["pitch_comp"]
+        x["roll"] = x["roll_comp"]
 
     # Resample MSIDset (values and bad flags) onto a common time sampling
-    print('starting interpolate')
+    print("starting interpolate")
     x.interpolate(interp, filter_bad=False)
 
     # Remove data during times of known bad or anomalous data (works as of
@@ -192,8 +221,7 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
         x[msid].remove_intervals(events.eclipses | events.safe_suns)
 
     # Select data only in a limited pitch range
-    ok = ((x['pitch'].vals > pitch0) &
-          (x['pitch'].vals < pitch1))
+    ok = (x["pitch"].vals > pitch0) & (x["pitch"].vals < pitch1)
 
     # Determine the logical-or of bad values for all MSIDs and use this
     # to further filter the data sample
@@ -202,50 +230,78 @@ def get_fss_prim_data(start='2011:001', stop=DateTime().date, interp=4.1,
     for msid in list(x.values()):
         # Ignore sun position monitor for bad data because it is frequently
         # bad (not available in certain subformats including SSR)
-        if msid.MSID == 'AOPSSUPM':
+        if msid.MSID == "AOPSSUPM":
             continue
         print(msid.msid, np.sum(msid.bads[ok]))
         bads = bads | msid.bads[ok]
     ok[ok] = ok[ok] & ~bads
 
     nvals = np.sum(ok)
-    colnames = ('times',
-                'pitch', 'roll', 'alpha', 'beta',
-                'alpha_sun', 'beta_sun', 'kalman')
-    dtypes = ('f8',
-              'f4', 'f4', 'f4', 'f4',
-              'bool', 'bool', 'bool', 'bool', 'bool', 'bool')
+    colnames = (
+        "times",
+        "pitch",
+        "roll",
+        "alpha",
+        "beta",
+        "alpha_sun",
+        "beta_sun",
+        "kalman",
+    )
+    dtypes = (
+        "f8",
+        "f4",
+        "f4",
+        "f4",
+        "f4",
+        "bool",
+        "bool",
+        "bool",
+        "bool",
+        "bool",
+        "bool",
+    )
     out = np.empty(nvals, dtype=list(zip(colnames, dtypes)))
 
-    out['times'][:] = x['pitch'].times[ok]
-    out['pitch'][:] = x['pitch'].vals[ok]
-    out['roll'][:] = x['roll'].vals[ok]
-    out['alpha'][:] = -x['aoalpang'].vals[ok]
-    out['beta'][:] = 90 - x['aobetang'].vals[ok]
-    out['alpha_sun'][:] = np.char.strip(x['aoalpsun'].vals[ok]) == 'SUN'
-    out['beta_sun'][:] = np.char.strip(x['aobetsun'].vals[ok]) == 'SUN'
-    out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
-                        (x['aopcadmd'].vals[ok] == 'NPNT'))
+    out["times"][:] = x["pitch"].times[ok]
+    out["pitch"][:] = x["pitch"].vals[ok]
+    out["roll"][:] = x["roll"].vals[ok]
+    out["alpha"][:] = -x["aoalpang"].vals[ok]
+    out["beta"][:] = 90 - x["aobetang"].vals[ok]
+    out["alpha_sun"][:] = np.char.strip(x["aoalpsun"].vals[ok]) == "SUN"
+    out["beta_sun"][:] = np.char.strip(x["aobetsun"].vals[ok]) == "SUN"
+    out["kalman"][:] = (x["aoacaseq"].vals[ok] == "KALM") & (
+        x["aopcadmd"].vals[ok] == "NPNT"
+    )
     return out
 
 
-def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
-                     pitch0=100, pitch1=144):
+def get_fss_sec_data(
+    start="2012:230", stop=DateTime().date, interp=4.1, pitch0=100, pitch1=144
+):
     """
     Get data for the secondary FSS (FSS-B before ~2013:130:20:00:00, FSS-A after)
     """
-    msids = ('aopcadmd', 'aoacaseq', 'pitch', 'roll',
-             'aspefsw2a', 'aspefsw4a', 'aspefsw2b', 'aspefsw4b',
-             'ccsdsvcd', 'cotlrdsf')
-    print('fetching data')
-    if DateTime(start).date < '2012:230':
-        start = '2012:230'
+    msids = (
+        "aopcadmd",
+        "aoacaseq",
+        "pitch",
+        "roll",
+        "aspefsw2a",
+        "aspefsw4a",
+        "aspefsw2b",
+        "aspefsw4b",
+        "ccsdsvcd",
+        "cotlrdsf",
+    )
+    print("fetching data")
+    if DateTime(start).date < "2012:230":
+        start = "2012:230"
     x = fetch.MSIDset(msids, start, stop)
 
     # Resample MSIDset (values and bad flags) onto a common time sampling
     # defined by the times when the FSS-secondary values are telemetered.
-    print('starting interpolate')
-    interpolate_times(x, times=x['aspefsw2b'].times, filter_bad=False)
+    print("starting interpolate")
+    interpolate_times(x, times=x["aspefsw2b"].times, filter_bad=False)
 
     # Remove data during times of known bad or anomalous data (works as of
     # Ska.engarchive 0.19.1)
@@ -254,15 +310,14 @@ def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
         x[msid].remove_intervals(events.eclipses | events.safe_suns)
 
     # Select data only in a limited pitch range
-    pitch_range = ((x['pitch'].vals > pitch0) &
-                   (x['pitch'].vals < pitch1))
+    pitch_range = (x["pitch"].vals > pitch0) & (x["pitch"].vals < pitch1)
 
     # Good data are telemetered at minor frames [0, 32, 64, 96]
     # Bogus data at [16, 48, 72, 104]
-    good_mf = np.mod(x['ccsdsvcd'].vals, 32) == 0
+    good_mf = np.mod(x["ccsdsvcd"].vals, 32) == 0
 
     # Select data in PCAD diagnostic subformat (otherwise no FSS-B telemetry)
-    pcad_sfmt = x['cotlrdsf'].vals == 'PCAD'
+    pcad_sfmt = x["cotlrdsf"].vals == "PCAD"
 
     ok = pitch_range & good_mf & pcad_sfmt
 
@@ -273,30 +328,48 @@ def get_fss_sec_data(start='2012:230', stop=DateTime().date, interp=4.1,
     for msid in list(x.values()):
         # Ignore sun position monitor for bad data because it is frequently
         # bad (not available in certain subformats including SSR)
-        if msid.MSID == 'AOPSSUPM':
+        if msid.MSID == "AOPSSUPM":
             continue
         print(msid.msid, np.sum(msid.bads[ok]))
         bads = bads | msid.bads[ok]
     ok[ok] = ok[ok] & ~bads
 
     nvals = np.sum(ok)
-    colnames = ('times',
-                'pitch', 'roll', 'alpha', 'beta',
-                'alpha_sun', 'beta_sun', 'kalman')
-    dtypes = ('f8',
-              'f4', 'f4', 'f4', 'f4',
-              'bool', 'bool', 'bool', 'bool', 'bool', 'bool')
+    colnames = (
+        "times",
+        "pitch",
+        "roll",
+        "alpha",
+        "beta",
+        "alpha_sun",
+        "beta_sun",
+        "kalman",
+    )
+    dtypes = (
+        "f8",
+        "f4",
+        "f4",
+        "f4",
+        "f4",
+        "bool",
+        "bool",
+        "bool",
+        "bool",
+        "bool",
+        "bool",
+    )
     out = np.empty(nvals, dtype=list(zip(colnames, dtypes)))
 
-    out['times'][:] = x['pitch'].times[ok]
-    out['pitch'][:] = x['pitch'].vals[ok]
-    out['roll'][:] = x['roll'].vals[ok]
-    out['alpha'][:] = -x['aspefsw2b'].vals[ok]
-    out['beta'][:] = 90 - x['aspefsw4b'].vals[ok]
-    out['alpha_sun'][:] = x['aspefsw2a'].vals[ok] == 'SUN '
-    out['beta_sun'][:] = x['aspefsw4a'].vals[ok] == 'SUN '
-    out['kalman'][:] = ((x['aoacaseq'].vals[ok] == 'KALM') &
-                        (x['aopcadmd'].vals[ok] == 'NPNT'))
+    out["times"][:] = x["pitch"].times[ok]
+    out["pitch"][:] = x["pitch"].vals[ok]
+    out["roll"][:] = x["roll"].vals[ok]
+    out["alpha"][:] = -x["aspefsw2b"].vals[ok]
+    out["beta"][:] = 90 - x["aspefsw4b"].vals[ok]
+    out["alpha_sun"][:] = x["aspefsw2a"].vals[ok] == "SUN "
+    out["beta_sun"][:] = x["aspefsw4a"].vals[ok] == "SUN "
+    out["kalman"][:] = (x["aoacaseq"].vals[ok] == "KALM") & (
+        x["aopcadmd"].vals[ok] == "NPNT"
+    )
     return out
 
 
@@ -339,9 +412,13 @@ def interpolate_times(msidset, times, filter_bad=True):
     for msid in msids:
         if filter_bad:
             msid.filter_bad()
-        indexes = Ska.Numpy.interpolate(np.arange(len(msid.times)),
-                                        msid.times, msidset.times,
-                                        method='nearest', sorted=True)
+        indexes = Ska.Numpy.interpolate(
+            np.arange(len(msid.times)),
+            msid.times,
+            msidset.times,
+            method="nearest",
+            sorted=True,
+        )
         for colname in msid.colnames:
             colvals = getattr(msid, colname)
             if colvals is not None:
