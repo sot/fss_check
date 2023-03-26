@@ -15,6 +15,6 @@ setup(
     setup_requires=["setuptools_scm", "setuptools_scm_git_archive"],
     zip_safe=False,
     entry_points=entry_points,
-    packages=["fss_check"],
+    packages=["fss_check", "fss_check.scripts"],
     package_data={"fss_check": ["data/*/*", "task_schedule.cfg"]},
 )
