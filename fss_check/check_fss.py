@@ -3,13 +3,13 @@
 import matplotlib.pyplot as plt
 import matplotlib.style
 import numpy as np
-import Ska.engarchive.fetch_eng as fetch
 from astropy.table import Table
 from Chandra.Time import DateTime
+from cxotime import CxoTime
 from kadi import events
-from Ska.Matplotlib import cxctime2plotdate, plot_cxctime
+from Ska.Matplotlib import cxctime2plotdate, plot_cxctime, set_min_axis_range
 
-from .bad_times import bad_times
+from fss_check.fss_utils import get_spm_pitch_roll
 
 matplotlib.style.use("bmh")
 
@@ -188,244 +188,225 @@ def plot_pitches(
             plt.savefig("pitch_" + ident + suff + start_suffix + ".png")
 
 
-def get_fss_prim_data(
-    start="2011:001",
-    stop=DateTime().date,
-    interp=4.1,
-    pitch0=40,
-    pitch1=144,
-    use_maude=False,
-):
+def plot_delta_vs_pitch_roll(dat):
+    """Plot delta pitch and delta roll vs. pitch and roll.
+
+    Parameters
+    ----------
+    dat : astropy.table.Table
+        Table of FSS data
     """
-    Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
-    """
-    msids = ("aopcadmd", "aoacaseq", "aoalpang", "aobetang", "aoalpsun", "aobetsun")
-    if use_maude:
-        msids += ("pitch_comp", "roll_comp")
-    else:
-        msids += ("pitch", "roll")
-    print("fetching data")
-    x = fetch.MSIDset(msids, start, stop)
-    if use_maude:
-        x["pitch"] = x["pitch_comp"]
-        x["roll"] = x["roll_comp"]
+    marker = "."
+    marker_size = 1
 
-    # Resample MSIDset (values and bad flags) onto a common time sampling
-    print("starting interpolate")
-    x.interpolate(interp, filter_bad=False)
+    ok_pitch = dat["pitch"] < 135
+    _, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2, 2, figsize=(8, 6))
 
-    # Remove data during times of known bad or anomalous data (works as of
-    # Ska.engarchive 0.19.1)
-    x.filter_bad_times(table=bad_times)
-    for msid in msids:
-        x[msid].remove_intervals(events.eclipses | events.safe_suns)
+    def plot_one(ax, xaxis, yaxis):
+        channel = {"pitch": "beta", "roll": "alpha"}[yaxis]
+        ok = ok_pitch & dat[channel + "_sun"]
 
-    # Select data only in a limited pitch range
-    ok = (x["pitch"].vals > pitch0) & (x["pitch"].vals < pitch1)
+        pitch = dat["pitch"][ok]
+        roll = dat["roll"][ok]
+        pitch_fss = dat["pitch_fss"][ok]
+        roll_fss = dat["roll_fss"][ok]
+        d_pitch = (pitch_fss - pitch).clip(-3, 3)
+        d_roll = (roll_fss - roll).clip(-3, 3)
 
-    # Determine the logical-or of bad values for all MSIDs and use this
-    # to further filter the data sample
-    nvals = np.sum(ok)
-    bads = np.zeros(nvals, dtype=bool)
-    for msid in list(x.values()):
-        # Ignore sun position monitor for bad data because it is frequently
-        # bad (not available in certain subformats including SSR)
-        if msid.MSID == "AOPSSUPM":
-            continue
-        print(msid.msid, np.sum(msid.bads[ok]))
-        bads = bads | msid.bads[ok]
-    ok[ok] = ok[ok] & ~bads
+        x = pitch if xaxis == "pitch" else roll
+        y = d_pitch if yaxis == "pitch" else d_roll
 
-    nvals = np.sum(ok)
-    colnames = (
-        "times",
-        "pitch",
-        "roll",
-        "alpha",
-        "beta",
-        "alpha_sun",
-        "beta_sun",
-        "kalman",
-    )
-    dtypes = (
-        "f8",
-        "f4",
-        "f4",
-        "f4",
-        "f4",
-        "bool",
-        "bool",
-        "bool",
-        "bool",
-        "bool",
-        "bool",
-    )
-    out = np.empty(nvals, dtype=list(zip(colnames, dtypes)))
-
-    out["times"][:] = x["pitch"].times[ok]
-    out["pitch"][:] = x["pitch"].vals[ok]
-    out["roll"][:] = x["roll"].vals[ok]
-    out["alpha"][:] = -x["aoalpang"].vals[ok]
-    out["beta"][:] = 90 - x["aobetang"].vals[ok]
-    out["alpha_sun"][:] = np.char.strip(x["aoalpsun"].vals[ok]) == "SUN"
-    out["beta_sun"][:] = np.char.strip(x["aobetsun"].vals[ok]) == "SUN"
-    out["kalman"][:] = (x["aoacaseq"].vals[ok] == "KALM") & (
-        x["aopcadmd"].vals[ok] == "NPNT"
-    )
-    return out
-
-
-def get_fss_sec_data(
-    start="2012:230", stop=DateTime().date, interp=4.1, pitch0=100, pitch1=144
-):
-    """
-    Get data for the secondary FSS (FSS-B before ~2013:130:20:00:00, FSS-A after)
-    """
-    msids = (
-        "aopcadmd",
-        "aoacaseq",
-        "pitch",
-        "roll",
-        "aspefsw2a",
-        "aspefsw4a",
-        "aspefsw2b",
-        "aspefsw4b",
-        "ccsdsvcd",
-        "cotlrdsf",
-    )
-    print("fetching data")
-    if DateTime(start).date < "2012:230":
-        start = "2012:230"
-    x = fetch.MSIDset(msids, start, stop)
-
-    # Resample MSIDset (values and bad flags) onto a common time sampling
-    # defined by the times when the FSS-secondary values are telemetered.
-    print("starting interpolate")
-    interpolate_times(x, times=x["aspefsw2b"].times, filter_bad=False)
-
-    # Remove data during times of known bad or anomalous data (works as of
-    # Ska.engarchive 0.19.1)
-    x.filter_bad_times(table=bad_times)
-    for msid in msids:
-        x[msid].remove_intervals(events.eclipses | events.safe_suns)
-
-    # Select data only in a limited pitch range
-    pitch_range = (x["pitch"].vals > pitch0) & (x["pitch"].vals < pitch1)
-
-    # Good data are telemetered at minor frames [0, 32, 64, 96]
-    # Bogus data at [16, 48, 72, 104]
-    good_mf = np.mod(x["ccsdsvcd"].vals, 32) == 0
-
-    # Select data in PCAD diagnostic subformat (otherwise no FSS-B telemetry)
-    pcad_sfmt = x["cotlrdsf"].vals == "PCAD"
-
-    ok = pitch_range & good_mf & pcad_sfmt
-
-    # Determine the logical-or of bad values for all MSIDs and use this
-    # to further filter the data sample
-    nvals = np.sum(ok)
-    bads = np.zeros(nvals, dtype=bool)
-    for msid in list(x.values()):
-        # Ignore sun position monitor for bad data because it is frequently
-        # bad (not available in certain subformats including SSR)
-        if msid.MSID == "AOPSSUPM":
-            continue
-        print(msid.msid, np.sum(msid.bads[ok]))
-        bads = bads | msid.bads[ok]
-    ok[ok] = ok[ok] & ~bads
-
-    nvals = np.sum(ok)
-    colnames = (
-        "times",
-        "pitch",
-        "roll",
-        "alpha",
-        "beta",
-        "alpha_sun",
-        "beta_sun",
-        "kalman",
-    )
-    dtypes = (
-        "f8",
-        "f4",
-        "f4",
-        "f4",
-        "f4",
-        "bool",
-        "bool",
-        "bool",
-        "bool",
-        "bool",
-        "bool",
-    )
-    out = np.empty(nvals, dtype=list(zip(colnames, dtypes)))
-
-    out["times"][:] = x["pitch"].times[ok]
-    out["pitch"][:] = x["pitch"].vals[ok]
-    out["roll"][:] = x["roll"].vals[ok]
-    out["alpha"][:] = -x["aspefsw2b"].vals[ok]
-    out["beta"][:] = 90 - x["aspefsw4b"].vals[ok]
-    out["alpha_sun"][:] = x["aspefsw2a"].vals[ok] == "SUN "
-    out["beta_sun"][:] = x["aspefsw4a"].vals[ok] == "SUN "
-    out["kalman"][:] = (x["aoacaseq"].vals[ok] == "KALM") & (
-        x["aopcadmd"].vals[ok] == "NPNT"
-    )
-    return out
-
-
-def interpolate_times(msidset, times, filter_bad=True):
-    """Perform nearest-neighbor interpolation of all MSID values in the set
-    to a common time sequence.  The values are updated in-place.
-
-    For each MSID in the set the ``times`` attribute is set to the common
-    time sequence.  In addition a new attribute ``times0`` is defined that
-    stores the nearest neighbor interpolated time, providing the *original*
-    timestamps of each new interpolated value for that MSID.
-
-    By default ``filter_bad`` is True and each MSID has bad data filtered
-    *before* interpolation so that the nearest neighbor interpolation only
-    finds good data.  In this case (or for ``stat`` values which do not
-    have bad values), the ``times0`` attribute can be used to diagnose
-    whether the interpolation is meaningful.  For instance large numbers of
-    identical time stamps in ``times0`` may be a problem.
-
-    If ``filter_bad`` is set to false then data are not filtered.  In this
-    case the MSID ``bads`` values are interpolated as well and provide an
-    indication if the interpolated values are bad.
-
-    :param msidset: input MSIDset
-    :param times: times at which to interpolate the MSIDset (sec)
-    :param filter_bad: filter bad values before interpolating
-    """
-    import Ska.Numpy
-
-    msids = list(msidset.values())  # MSID objects in the MSIDset
-
-    # Ensure that tstart / tstop is entirely within the range of available
-    # data fetched from the archive.
-    max_fetch_tstart = max(msid.times[0] for msid in msids)
-    min_fetch_tstop = min(msid.times[-1] for msid in msids)
-    istart, istop = np.searchsorted(times, [max_fetch_tstart, min_fetch_tstop])
-
-    msidset.times = times[istart:istop]
-
-    for msid in msids:
-        if filter_bad:
-            msid.filter_bad()
-        indexes = Ska.Numpy.interpolate(
-            np.arange(len(msid.times)),
-            msid.times,
-            msidset.times,
-            method="nearest",
-            sorted=True,
+        for mask, color, label in zip(
+            (~dat["kalman"][ok], dat["kalman"][ok]),
+            ("C0", "C1"),
+            ("Kalman", "Not Kalman"),
+        ):
+            ax.plot(x[mask], y[mask], marker, color=color, ms=marker_size, label=label)
+            bad = np.abs(y[mask]) > 1.5
+            if np.any(bad):
+                ax.plot(x[mask][bad], y[mask][bad], marker, color=color)
+        ax.margins(0.05)
+        ax.set_xlabel(f"{xaxis.capitalize()} (deg)")
+        ax.set_ylabel(f"Delta {yaxis} (deg)")
+        ax.set_title(f"FSS {yaxis} - OBC {yaxis} vs. {xaxis}")
+        x0, x1 = ax.get_xlim()
+        ax.hlines(
+            [1.5, -1.5], xmin=x0, xmax=x1, color="r", linestyle="dashed", alpha=0.5
         )
-        for colname in msid.colnames:
-            colvals = getattr(msid, colname)
-            if colvals is not None:
-                setattr(msid, colname, colvals[indexes])
+        ax.set_xlim(x0, x1)
+        if xaxis == "pitch" and yaxis == "roll":
+            ax.legend(loc="upper left")
 
-        # Make a new attribute times0 that stores the nearest neighbor
-        # interpolated times.  Then set the MSID times to be the common
-        # interpolation times.
-        msid.times0 = msid.times
-        msid.times = msidset.times
+    # fmt: off
+    plot_one(ax0, "roll", "pitch")
+    plot_one(ax1, "pitch", "pitch")
+    plot_one(ax2, "roll", "roll")
+    plot_one(ax3, "pitch", "roll")
+    # fmt: on
+
+    year = CxoTime(dat["times"][0]).date[:4]
+    plt.suptitle(f"FSS data for {year} through {CxoTime(dat['times'][-1]).date}")
+    plt.tight_layout()
+
+
+def plot_roll_pitch_vs_time(dat, start, stop):
+    """Plot roll and pitch (OBC and FSS) vs. time.
+
+    This is used to make detail plots of short time intervals.
+
+    Parameters
+    ----------
+    dat : astropy.table.Table
+        Table of FSS data
+    start : CxoTimeLike
+        Start time
+    stop : CxoTimeLike
+        Stop time
+    """
+    start = CxoTime(start)
+    stop = CxoTime(stop)
+    i0, i1 = np.searchsorted(dat["times"], [start.secs, stop.secs])
+    dat = dat[i0:i1]
+
+    sun_present = dat["alpha_sun"] & dat["beta_sun"] & (dat["pitch"] < 135)
+    roll_fss = dat["roll_fss"].copy()
+    roll_err = dat["roll_fss"] - dat["roll"]
+    roll_fss[~sun_present] = np.nan
+    roll_err[~sun_present] = np.nan
+    pitch_fss = dat["pitch_fss"].copy()
+    pitch_err = dat["pitch_fss"] - dat["pitch"]
+    pitch_fss[~sun_present] = np.nan
+    pitch_err[~sun_present] = np.nan
+
+    _, axs = plt.subplots(2, 2, figsize=(10, 4), sharex=True)
+    plot_cxctime(
+        dat["times"],
+        roll_fss,
+        ".-",
+        ax=axs[0, 0],
+        lw=0.25,
+        color="C1",
+        label="Roll FSS",
+    )
+    plot_cxctime(
+        dat["times"], dat["roll"], "-", ax=axs[0, 0], color="C0", label="Roll OBC"
+    )
+    plot_cxctime(
+        dat["times"],
+        roll_err,
+        ".-",
+        color="C1",
+        ax=axs[1, 0],
+        ms=3,
+        lw=0.25,
+        label="Roll error",
+    )
+    plot_cxctime(
+        dat["times"],
+        pitch_fss,
+        ".-",
+        ax=axs[0, 1],
+        lw=0.5,
+        color="C1",
+        label="Pitch FSS",
+    )
+    plot_cxctime(
+        dat["times"], dat["pitch"], "-", ax=axs[0, 1], color="C0", label="Pitch OBC"
+    )
+    plot_cxctime(
+        dat["times"],
+        pitch_err,
+        ".",
+        color="C1",
+        ax=axs[1, 1],
+        ms=3,
+        label="Pitch error",
+    )
+
+    axs[0, 0].legend(loc="best")
+    axs[0, 1].legend(loc="best")
+    axs[0, 0].set_ylabel("Roll (deg)")
+    axs[1, 0].set_ylabel("Roll error (deg)")
+    axs[0, 1].set_ylabel("Pitch (deg)")
+    axs[1, 1].set_ylabel("Pitch error (deg)")
+    set_min_axis_range(axs[1, 0], 1.0)
+    set_min_axis_range(axs[1, 1], 1.0)
+    plt.tight_layout()
+
+
+def plot_pitch_roll_spm_mp_constraints(dat):
+    from ska_sun import ROLL_TABLE
+
+    plt.figure(figsize=(12, 8))
+    pitch, roll = get_spm_pitch_roll()
+    plt.plot(pitch, roll, color="C1", label="SPM limit")
+    ok = dat["alpha_sun"] & dat["beta_sun"] & (dat["pitch"] < 135)
+    dok = dat[ok]
+    plt.plot(dok["pitch_fss"], dok["roll_fss"], ".", ms=1, alpha=0.5, color="C0")
+    bad = np.abs(dok["roll_fss"] - dok["roll"]) > 1.0
+    plt.plot(
+        dok["pitch_fss"][bad],
+        dok["roll_fss"][bad],
+        ".",
+        color="C1",
+        ms=4,
+        label="FSS roll err > 1 deg",
+    )
+    bad = np.abs(dok["roll_fss"] - dok["roll"]) > 1.5
+    plt.plot(
+        dok["pitch_fss"][bad],
+        dok["roll_fss"][bad],
+        ".",
+        color="r",
+        ms=8,
+        label="FSS roll err > 1.5 deg",
+    )
+    plt.plot(
+        ROLL_TABLE.val["pitch"],
+        ROLL_TABLE.val["rolldev"],
+        color="C1",
+        lw=1,
+        label="Planning limit",
+    )
+    plt.plot(ROLL_TABLE.val["pitch"], -ROLL_TABLE.val["rolldev"], color="C1", lw=1)
+    plt.xlim(None, 140)
+    plt.xlabel("Pitch (deg)")
+    plt.ylabel("Roll (deg)")
+    plt.title(
+        "Pitch and roll from FSS data 2022 and 2023 through "
+        f'{CxoTime(dat["times"][-1]).date}'
+    )
+    plt.legend(loc="upper left")
+
+
+def plot_no_sun_presence(dat):
+    """Plot pitch for all points where no sun presence is indicated."""
+    times = dat["times"]
+    pitch = dat["pitch"]
+    sun = dat["alpha_sun"] & dat["beta_sun"]
+
+    p135 = pitch < 135
+    ok = ~sun & p135
+    plot_cxctime(
+        times[ok],
+        pitch[ok],
+        ".",
+        color="C1",
+        label="No sun presence, pitch < 135",
+        alpha=0.5,
+    )
+
+    ok = ~sun
+    plot_cxctime(
+        times[ok],
+        pitch[ok],
+        ",",
+        color="C0",
+        label="No sun presence, pitch < 135",
+    )
+    last_date = CxoTime(times[-1]).date[:-4]
+
+    plt.legend(loc="best", fancybox=True, framealpha=0.5)
+    plt.grid("on")
+    plt.title(f"No sun presence (not AOALPSUN or not AOBETSUN) (through {last_date})")
+    plt.ylabel("Pitch (deg)")
