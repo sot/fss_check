@@ -282,7 +282,7 @@ print(pitch_obc[:5])
 print(pitch_gnd[:5])
 
 
-def get_fss_prim_data(start, stop=None, offset=0.0, pitch0=40, pitch1=144):
+def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=144):
     """
     Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
 

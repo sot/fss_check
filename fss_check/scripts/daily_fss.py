@@ -6,7 +6,8 @@ from pathlib import Path
 import matplotlib
 import Ska.File
 from Chandra.Time import DateTime
-from fss_check import get_fss_prim_data, plot_pitches, plot_pitches_any_kalman
+from fss_check.check_fss import plot_pitches, plot_pitches_any_kalman
+from fss_check.fss_utils import get_fss_prim_data, add_pitch_roll_columns
 from cheta import fetch_eng as fetch
 
 
@@ -43,7 +44,8 @@ def main(args=None):
 
     start = DateTime(args.start)
     print("Processing fss_prim", start.date, stop.date)
-    dat = get_fss_prim_data(start, stop, interp=args.interp, use_maude=args.use_maude)
+    dat = get_fss_prim_data(start, stop)
+    dat = add_pitch_roll_columns(dat)
 
     outdir = Path(args.out) / "fss_prim"
     outdir.mkdir(parents=True, exist_ok=True)

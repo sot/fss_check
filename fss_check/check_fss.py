@@ -54,7 +54,7 @@ def plot_pitches_any_kalman(
     """
     times = out["times"]
     pitch = out["pitch"]
-    alpha_err = out["alpha"] - out["roll"]
+    alpha_err = out["roll_fss"] - out["roll"]
     sun = out["alpha_sun"] & out["beta_sun"]
 
     vals = [
@@ -106,7 +106,7 @@ def plot_pitches_any_kalman(
 
 
 def plot_pitches(
-    out,
+    dat,
     angle_err_lim=8.0,
     savefig=False,
     start=None,
@@ -114,11 +114,11 @@ def plot_pitches(
     primary=True,
     start_suffix="",
 ):
-    times = out["times"]
-    pitch = out["pitch"]
-    alpha_err = out["alpha"] - out["roll"]
-    alpha_sun = out["alpha_sun"]
-    beta_sun = out["beta_sun"]
+    times = dat["times"]
+    pitch = dat["pitch"]
+    roll_err = dat["roll_fss"] - dat["roll"]
+    alpha_sun = dat["alpha_sun"]
+    beta_sun = dat["beta_sun"]
 
     for i, title, xlabel, ylabel in (
         (
@@ -139,7 +139,7 @@ def plot_pitches(
             plt.xlabel(xlabel)
 
     zipvals = zip(
-        (~out["kalman"], out["kalman"]),
+        (~dat["kalman"], dat["kalman"]),
         (
             dict(color="c", mec="c"),  # Not Kalman, No sun presence
             dict(color="r", mec="r"),
@@ -151,7 +151,7 @@ def plot_pitches(
         ("Not Kalman (cyan)", "Kalman (red)"),
     )
     sun_presence = alpha_sun & beta_sun
-    bad_value = abs(alpha_err) > angle_err_lim
+    bad_value = abs(roll_err) > angle_err_lim
     for filt, opt1, opt2, label in zipvals:
         plt.figure(1)
         ok = filt & bad_value
