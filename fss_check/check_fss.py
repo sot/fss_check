@@ -3,8 +3,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.style
 import numpy as np
-from astropy.table import Table
-from Chandra.Time import DateTime
 from cxotime import CxoTime
 from kadi import events
 from Ska.Matplotlib import cxctime2plotdate, plot_cxctime, set_min_axis_range
@@ -15,19 +13,6 @@ matplotlib.style.use("bmh")
 
 plt.rc("legend", fontsize=10)
 events.eclipses.pad_interval = 1000
-
-
-def plot_swap_line(primary):
-    swap_date = DateTime("2013:130:20:00:00")
-    swap_x = cxctime2plotdate([swap_date.secs])
-    x0, x1 = plt.xlim()
-    y0, y1 = plt.ylim()
-    plt.plot([swap_x, swap_x], [y0, y1], "--g", lw=2)
-    text_y = y1 - (y1 - y0) * 0.08
-    dx = (x1 - x0) * 0.05
-    label1, label2 = ("FSS-A", "FSS-B") if primary else ("FSS-B", "FSS-A")
-    plt.text(swap_x - dx, text_y, label1, ha="right", bbox=dict(facecolor="yellow"))
-    plt.text(swap_x + dx, text_y, label2, ha="left", bbox=dict(facecolor="yellow"))
 
 
 def set_plot_limits(start, stop):
@@ -45,64 +30,39 @@ def set_plot_limits(start, stop):
 
 
 def plot_pitches_any_kalman(
-    out, savefig=False, start=None, stop=None, primary=True, start_suffix=""
+    dat, savefig=False, start=None, stop=None, suffix="", axis="roll"
 ):
     """Plot pitch for all points where alpha_err > angle_err_lim.
     Cyan points are with no sun presence, red are with sun presence.
     Unlike plot_pitches() below there is no distinction made based
     on the kalman state.
     """
-    times = out["times"]
-    pitch = out["pitch"]
-    alpha_err = out["roll_fss"] - out["roll"]
-    sun = out["alpha_sun"] & out["beta_sun"]
+    times = dat["times"]
+    pitch = dat["pitch"]
+    pitch_roll_err = dat[f"{axis}_err"]
+    sun = dat["alpha_sun"] & dat["beta_sun"]
 
     vals = [
-        (~sun, "c.", "c", 1.0, "No Sun Presense", 8.0),
+        (~sun, "c.", "c", 1.0, "No Sun Presense (error > 8.0 deg)", 8.0),
         (sun, "bo", "b", 0.5, "Sun Presense (2.0 < error <= 4.0 deg)", 2.0),
         (sun, "mo", "m", 0.7, "Sun Presense (4.0 < error <= 8.0 deg)", 4.0),
         (sun, "ro", "r", 1.0, "Sun Presense (error > 8.0 deg)", 8.0),
     ]
     plt.figure()
     for filt, mark, mec, alpha, label, err_min in vals:
-        ok = (abs(alpha_err) > err_min) & filt
+        ok = (abs(pitch_roll_err) > err_min) & filt
         if np.any(ok):
             print(label, np.count_nonzero(ok))
             plot_cxctime(times[ok], pitch[ok], mark, mec=mec, label=label, alpha=alpha)
 
-            # Find just the > 2.0 points and make a table
-            if mark == "bo":
-                tbl = Table(
-                    {
-                        "date": DateTime(times).date[ok],
-                        "pitch": pitch[ok],
-                        "alpha_err": alpha_err[ok],
-                        "sun": sun[ok],
-                    }
-                )
-                tbl.sort("date")
-                tbl["pitch"].format = "%.3f"
-                tbl["alpha_err"].format = "%.3f"
-                tbl = tbl[::-1]
-                tbl.write(
-                    "bad_alpha_err.txt",
-                    format="ascii.fixed_width_two_line",
-                    overwrite=True,
-                )
-
-    last_date = DateTime(np.max(times)).date[:-4]
-
-    plt.legend(loc="best", fancybox=True, framealpha=0.5)
-    plt.grid("on")
-    plt.title(f"Pitch for alpha error > threshold (through {last_date})")
+    plt.legend(loc="upper left", fancybox=True, framealpha=0.9, fontsize="small")
+    plt.title(f"Pitch for {axis} error > threshold")
     plt.ylabel("Pitch (deg)")
 
     set_plot_limits(start, stop)
 
-    plot_swap_line(primary)
-
     if savefig:
-        plt.savefig(f"pitch_bad_alpha{start_suffix}.png")
+        plt.savefig(f"pitch_bad_{axis}_{suffix}.png")
 
 
 def plot_pitches(
@@ -181,7 +141,6 @@ def plot_pitches(
         set_plot_limits(start, stop)
 
         plt.legend(loc="best")
-        plot_swap_line(primary)
 
         if savefig:
             ident = savefig if isinstance(savefig, str) else ""
