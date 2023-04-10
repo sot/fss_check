@@ -1,9 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
+import logging
+from typing import Optional
+
 import matplotlib.pyplot as plt
 import matplotlib.style
 import numpy as np
-from cxotime import CxoTime
+from astropy.table import Table
+from cxotime import CxoTime, CxoTimeLike
 from kadi import events
 from Ska.Matplotlib import cxctime2plotdate, plot_cxctime, set_min_axis_range
 
@@ -13,6 +17,8 @@ matplotlib.style.use("bmh")
 
 plt.rc("legend", fontsize=10)
 events.eclipses.pad_interval = 1000
+
+logger = logging.getLogger("fss_check")
 
 
 def set_plot_limits(start, stop):
@@ -29,14 +35,20 @@ def set_plot_limits(start, stop):
     plt.ylim(y0 - dy, y1 + dy)
 
 
-def plot_pitches_any_kalman(
-    dat, savefig=False, start=None, stop=None, suffix="", axis="roll"
+def plot_pitch_for_data_with_large_errors(
+    dat: Table,
+    start: Optional[CxoTimeLike] = None,
+    stop: Optional[CxoTimeLike] = None,
+    outfile: Optional[str] = None,
+    axis: str = "roll",
 ):
-    """Plot pitch for all points where alpha_err > angle_err_lim.
+    """Plot pitch for all points where `axis` value error > angle_err_lim.
+
     Cyan points are with no sun presence, red are with sun presence.
     Unlike plot_pitches() below there is no distinction made based
     on the kalman state.
     """
+    logger.info("Running plot_pitch_for_data_with_large_errors")
     times = dat["times"]
     pitch = dat["pitch"]
     pitch_roll_err = dat[f"{axis}_err"]
@@ -52,7 +64,7 @@ def plot_pitches_any_kalman(
     for filt, mark, mec, alpha, label, err_min in vals:
         ok = (abs(pitch_roll_err) > err_min) & filt
         if np.any(ok):
-            print(label, np.count_nonzero(ok))
+            logger.info(f" {label} {np.count_nonzero(ok)}")
             plot_cxctime(times[ok], pitch[ok], mark, mec=mec, label=label, alpha=alpha)
 
     plt.legend(loc="upper left", fancybox=True, framealpha=0.9, fontsize="small")
@@ -61,8 +73,8 @@ def plot_pitches_any_kalman(
 
     set_plot_limits(start, stop)
 
-    if savefig:
-        plt.savefig(f"pitch_bad_{axis}_{suffix}.png")
+    if outfile is not None:
+        plt.savefig(outfile)
 
 
 def plot_pitches(
@@ -74,6 +86,10 @@ def plot_pitches(
     primary=True,
     start_suffix="",
 ):
+    """LEGACY: Plot pitch for all points where roll error > angle_err_lim.
+
+    This is a legacy function that is not used in the current fss_check.
+    """
     times = dat["times"]
     pitch = dat["pitch"]
     roll_err = dat["roll_fss"] - dat["roll"]
@@ -147,14 +163,23 @@ def plot_pitches(
             plt.savefig("pitch_" + ident + suff + start_suffix + ".png")
 
 
-def plot_delta_vs_pitch_roll(dat):
+def plot_delta_vs_pitch_roll(dat: Table, outfile: Optional[str] = None):
     """Plot delta pitch and delta roll vs. pitch and roll.
+
+    This results in a 2x2 plot with the following subplots:
+    - delta pitch vs. pitch
+    - delta roll vs. pitch
+    - delta pitch vs. roll
+    - delta roll vs. roll
 
     Parameters
     ----------
     dat : astropy.table.Table
         Table of FSS data
+    outfile : str, optional
+        Filename to write plot to.
     """
+    logger.info("Running plot_delta_vs_pitch_roll")
     marker = "."
     marker_size = 1
 
@@ -206,6 +231,9 @@ def plot_delta_vs_pitch_roll(dat):
     year = CxoTime(dat["times"][0]).date[:4]
     plt.suptitle(f"FSS data for {year} through {CxoTime(dat['times'][-1]).date}")
     plt.tight_layout()
+
+    if outfile:
+        plt.savefig(outfile)
 
 
 def plot_roll_pitch_vs_time(dat, start, stop):

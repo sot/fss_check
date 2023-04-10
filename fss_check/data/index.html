@@ -8,11 +8,9 @@
   <body>
     <!--#include virtual="/mta/ASPECT/header.html"-->
 
-    <h2> FSS-B Performance Trending </h2>
+    <h2> FSS-B Performance Trending through stop={{date_last}} ({{date_last_local}}) </h2>
 
-    <h3> Summary </h3>
-
-    <h3> Pitch Angles for Bad Data through stop={{date_last}} ({{date_last_local}})</h3>
+    <h3> Pitch Angles for Bad Data </h3>
 
       <p>The plots below show the sun pitch angle for data points where the FSS-B
       derived off-nominal roll or pitch is different from the true off-nominal roll or
@@ -25,8 +23,8 @@
 
     <table>
       <tr>
-        <th> Within {{days_long_term}} days of stop</th>
-        <th> Within {{days_recent}} days of stop</th> </tr>
+        <th> Long term: within {{days_long_term}} days</th>
+        <th> Recent: within {{days_recent}} days</th> </tr>
       <tr>
         <td> <img SRC="pitch_bad_roll_long_term.png" width="500"><br/> </td>
         <td> <img SRC="pitch_bad_roll_recent.png" width="500"><br/> </td>
@@ -36,6 +34,9 @@
         <td> <img SRC="pitch_bad_pitch_recent.png" width="500"><br/> </td>
       <tr>
     </table>
+
+    <h3> Pitch / Roll errors vs. Pitch / Roll for recent data </h3>
+    <img SRC="delta_pitch_roll_vs_pitch_roll_recent.png" width="800">
 
     <h3> FSS-Primary Historical Data </h3>
 
