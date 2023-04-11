@@ -3,19 +3,24 @@
 import logging
 from typing import Optional
 
+import kadi.events.query  # noqa: F401 # For kadi.events.models import (django setup)
 import matplotlib.pyplot as plt
 import matplotlib.style
 import numpy as np
 from astropy.table import Table
+from cheta.utils import logical_intervals
 from cxotime import CxoTime, CxoTimeLike
 from kadi import events
+from kadi.events.models import fuzz_states
 from Ska.Matplotlib import cxctime2plotdate, plot_cxctime, set_min_axis_range
 
-from fss_check.fss_utils import get_spm_pitch_roll
+from fss_check.fss_utils import CONFIG, get_spm_pitch_roll
 
 matplotlib.style.use("bmh")
 
 plt.rc("legend", fontsize=10)
+plt.rc("lines", markersize=4.0)
+
 events.eclipses.pad_interval = 1000
 
 logger = logging.getLogger("fss_check")
@@ -75,6 +80,34 @@ def plot_pitch_for_data_with_large_errors(
 
     if outfile is not None:
         plt.savefig(outfile)
+
+
+def get_large_pitch_roll_error_intervals(
+    dat: Table,
+    axis: str = "roll",
+    max_pitch: float = 135,
+    max_err: float = 2.0,
+    dt_join: float = 100,
+) -> Table:
+    """Return Table of points with large pitch or roll errors.
+
+    :param dat: data table
+    :param axis: 'roll' or 'pitch'
+    :param max_pitch: max pitch value (deg)
+    :param max_err: max pitch or roll error (deg)
+    :param dt_join: time delta (secs) to join intervals
+    :returns: table of intervals with large pitch or roll errors
+    """
+    sun = dat["alpha_sun"] & dat["beta_sun"]
+    ok = (np.abs(dat[f"{axis}_err"]) > max_err) & sun & (dat["pitch"] < max_pitch)
+
+    intervals = logical_intervals(dat["times"], ok, max_gap=33)
+    intervals = fuzz_states(intervals, dt_join)
+    # intervals["duration"].format = ".1f"
+    # intervals["tstart"].format = ".1f"
+    # intervals["tstop"].format = ".1f"
+
+    return intervals
 
 
 def plot_pitches(

@@ -3,7 +3,28 @@
   <head>
     <title>FSS trending</title>
     <link href="/mta/ASPECT/aspect.css" rel="stylesheet" type="text/css" media="all" />
-  </head>
+    <style type="text/css">
+        tr.pink-bkg {
+            background-color: #f88
+        }
+
+        table {
+            border-width: 1px;
+            border-spacing: 0px;
+            border-style: outset;
+            border-color: gray;
+            border-collapse: separate;
+        }
+
+        table th,
+        td {
+            border-width: 1px;
+            padding: 1px 5px 1px 5px;
+            border-style: solid;
+            border-color: gray;
+        }
+    </style>
+</head>
 
   <body>
     <!--#include virtual="/mta/ASPECT/header.html"-->
@@ -35,7 +56,20 @@
       <tr>
     </table>
 
-    <h3> Pitch / Roll errors vs. Pitch / Roll for recent data </h3>
+    <table>
+        <tr>
+            <th> Date </th>
+            <th> Duration </th>
+        </tr>
+        {% for row in large_roll_errors %}
+        <tr {{row['tr_class']}}>
+            <td> {{row['datestart']}} </td>
+            <td> {{row['duration']}} </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h3> Pitch / Roll errors vs. Pitch / Roll for recent data within {{days_recent}} days </h3>
     <img SRC="delta_pitch_roll_vs_pitch_roll_recent.png" width="800">
 
     <h3> FSS-Primary Historical Data </h3>

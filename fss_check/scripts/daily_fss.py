@@ -17,8 +17,14 @@ import fss_check
 from fss_check.check_fss import (
     plot_delta_vs_pitch_roll,
     plot_pitch_for_data_with_large_errors,
+    get_large_pitch_roll_error_intervals,
 )
-from fss_check.fss_utils import add_pitch_roll_columns, get_fss_prim_data
+from fss_check.fss_utils import (
+    add_pitch_roll_columns,
+    get_fss_prim_data,
+    get_fss_prim_data_cached,
+    CONFIG,
+)
 
 
 logger = basic_logger("fss_check")
@@ -54,6 +60,19 @@ def get_parser():
         default="INFO",
         help="Logging level (default=INFO)",
     )
+    # Add --cache-data argument to cache data locally
+    parser.add_argument(
+        "--cache-data",
+        action="store_true",
+        default=False,
+        help="Cache data locally in ./cache (mostly for testing)",
+    )
+    parser.add_argument(
+        "--highlight-recent-days",
+        type=float,
+        default=30.0,
+        help="Number of days to highlight in plots and table (days, default=30)",
+    )
     return parser
 
 
@@ -77,7 +96,8 @@ def main(args=None):
     }
 
     logger.info(f"Processing {starts['long_term'].date} to {stop.date}")
-    dat = get_fss_prim_data(starts["long_term"], stop)
+    get_data_func = get_fss_prim_data_cached if args.cache_data else get_fss_prim_data
+    dat = get_data_func(starts["long_term"], stop)
     dat = add_pitch_roll_columns(dat)
 
     i0 = np.searchsorted(dat["times"], starts["recent"].cxcsec)
@@ -105,6 +125,25 @@ def main(args=None):
         dats["recent"], outfile=outdir / "delta_pitch_roll_vs_pitch_roll_recent.png"
     )
 
+    large_pitch_roll_errors = {}
+    for axis in ["roll"]:
+        large_pitch_roll_errors[axis] = get_large_pitch_roll_error_intervals(
+            dats["recent"],
+            axis=axis,
+            max_pitch=CONFIG["get_large_pitch_roll_error_intervals"]["max_pitch"],
+            max_err=CONFIG["get_large_pitch_roll_error_intervals"]["max_err"],
+            dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
+        )
+        tr_classes = []
+        for row in large_pitch_roll_errors[axis]:
+            recent = (
+                CxoTime.now() - CxoTime(row["datestart"])
+                < args.highlight_recent_days * u.day
+            )
+            tr_class = 'class="pink-bkg"' if recent else ""
+            tr_classes.append(tr_class)
+        large_pitch_roll_errors["tr_class"] = tr_classes
+
     # Write out the HTML report
     template = jinja2.Template((data_dir / "index.html").read_text())
     context = {
@@ -113,6 +152,7 @@ def main(args=None):
         "stop": stop.date[:-4],
         "days_long_term": args.days_long_term,
         "days_recent": args.days_recent,
+        "large_roll_errors": large_pitch_roll_errors["roll"],
     }
     txt = template.render(**context)
     (outdir / "index.html").write_text(txt)

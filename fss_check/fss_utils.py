@@ -1,14 +1,38 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 """FSS utilities"""
+import os
+from pathlib import Path
+
 import cheta.fetch_eng as fetch
 import numpy as np
 import ska_numpy
+import yaml
 from astropy.table import Table
 from cxotime import CxoTime
 from kadi import events
+from ska_helpers.utils import LazyDict
 
-from fss_check.bad_times import bad_times
+SKA = Path(os.environ["SKA"])
+
+
+def _load_config_file():
+    """Load fss_check_config.yaml from current dir or $SKA/data/fss_check"""
+    for config_dir, from_ska in [(".", False), (SKA / "data" / "fss_check", True)]:
+        path = Path(config_dir) / "fss_check_config.yml"
+        if path.exists():
+            break
+
+    with open(path) as fh:
+        config = yaml.safe_load(fh)
+
+    config['config_path'] = str(path.absolute())
+    config['config_from_ska'] = from_ska
+
+    return config
+
+
+CONFIG = LazyDict(load_func=_load_config_file)
 
 # ### FSS counts to angle calibration on OBC
 #
@@ -326,13 +350,13 @@ def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=144):
     dat.interpolate(times=dat["aoalpang"].times[1:-1], filter_bad=False)
 
     # Remove data during times of known bad or anomalous data.
-    dat.filter_bad_times(table=bad_times)
+    dat.filter_bad_times(table=CONFIG["exclude_intervals"])
     events.eclipses.interval_pad = (1000, 1000)
-    events.safe_suns.interval_pad = (1000, 100000)
+    events.safe_suns.interval_pad = (0, 100000)
     events.normal_suns.interval_pad = (1000, 10000)
     for msid in msids:
         dat[msid].remove_intervals(
-            events.eclipses | events.safe_suns | events.normal_suns
+            events.eclipses | events.normal_suns  #  | events.safe_suns
         )
 
     # Select data only in a limited pitch range
