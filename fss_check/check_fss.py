@@ -84,7 +84,6 @@ def plot_pitch_for_data_with_large_errors(
 
 def get_large_pitch_roll_error_intervals(
     dat: Table,
-    axis: str = "roll",
     max_pitch: float = 135,
     max_err: float = 2.0,
     dt_join: float = 100,
@@ -99,13 +98,17 @@ def get_large_pitch_roll_error_intervals(
     :returns: table of intervals with large pitch or roll errors
     """
     sun = dat["alpha_sun"] & dat["beta_sun"]
-    ok = (np.abs(dat[f"{axis}_err"]) > max_err) & sun & (dat["pitch"] < max_pitch)
+    err_large = (np.abs(dat["pitch_err"]) > max_err) | (np.abs(dat["roll_err"]) > max_err)
+    ok = err_large & sun & (dat["pitch"] < max_pitch)
 
     intervals = logical_intervals(dat["times"], ok, max_gap=33)
     intervals = fuzz_states(intervals, dt_join)
-    # intervals["duration"].format = ".1f"
-    # intervals["tstart"].format = ".1f"
-    # intervals["tstop"].format = ".1f"
+    intervals["pitch_min"] = 0.0
+
+    for interval in intervals:
+        tstart, tstop = interval["tstart"], interval["tstop"]
+        i0, i1 = np.searchsorted(dat["times"], [tstart, tstop])
+        interval["pitch_min"] = np.min(dat["pitch"][i0:i1])
 
     return intervals
 
@@ -269,7 +272,9 @@ def plot_delta_vs_pitch_roll(dat: Table, outfile: Optional[str] = None):
         plt.savefig(outfile)
 
 
-def plot_roll_pitch_vs_time(dat, start, stop):
+def plot_roll_pitch_vs_time(
+    dat, start, stop, pitch_max=135, plot_errs=False, suptitle=None
+):
     """Plot roll and pitch (OBC and FSS) vs. time.
 
     This is used to make detail plots of short time intervals.
@@ -282,13 +287,19 @@ def plot_roll_pitch_vs_time(dat, start, stop):
         Start time
     stop : CxoTimeLike
         Stop time
+    pitch_max : float
+        Maximum pitch angle to consider
+    plot_errs : bool
+        Plot the FSS - OBC errors in addition to the FSS and OBC values
+    suptitle : str
+        Optional super-title for the plot
     """
     start = CxoTime(start)
     stop = CxoTime(stop)
     i0, i1 = np.searchsorted(dat["times"], [start.secs, stop.secs])
     dat = dat[i0:i1]
 
-    sun_present = dat["alpha_sun"] & dat["beta_sun"] & (dat["pitch"] < 135)
+    sun_present = dat["alpha_sun"] & dat["beta_sun"] & (dat["pitch"] < pitch_max)
     roll_fss = dat["roll_fss"].copy()
     roll_err = dat["roll_fss"] - dat["roll"]
     roll_fss[~sun_present] = np.nan
@@ -298,61 +309,70 @@ def plot_roll_pitch_vs_time(dat, start, stop):
     pitch_fss[~sun_present] = np.nan
     pitch_err[~sun_present] = np.nan
 
-    _, axs = plt.subplots(2, 2, figsize=(10, 4), sharex=True)
+    figsize = (8, 5) if plot_errs else (8, 2.5)
+    nrows = 2 if plot_errs else 1
+    _, axs = plt.subplots(nrows, 2, figsize=figsize, sharex=True, squeeze=False)
+
+    plot_cxctime(
+        dat["times"], dat["roll"], "-", ax=axs[0, 0], color="C0", label="Roll OBC"
+    )
     plot_cxctime(
         dat["times"],
         roll_fss,
         ".-",
         ax=axs[0, 0],
         lw=0.25,
+        ms=3,
         color="C1",
         label="Roll FSS",
-    )
-    plot_cxctime(
-        dat["times"], dat["roll"], "-", ax=axs[0, 0], color="C0", label="Roll OBC"
-    )
-    plot_cxctime(
-        dat["times"],
-        roll_err,
-        ".-",
-        color="C1",
-        ax=axs[1, 0],
-        ms=3,
-        lw=0.25,
-        label="Roll error",
-    )
-    plot_cxctime(
-        dat["times"],
-        pitch_fss,
-        ".-",
-        ax=axs[0, 1],
-        lw=0.5,
-        color="C1",
-        label="Pitch FSS",
     )
     plot_cxctime(
         dat["times"], dat["pitch"], "-", ax=axs[0, 1], color="C0", label="Pitch OBC"
     )
     plot_cxctime(
         dat["times"],
-        pitch_err,
-        ".",
-        color="C1",
-        ax=axs[1, 1],
+        pitch_fss,
+        ".-",
+        ax=axs[0, 1],
+        lw=0.25,
         ms=3,
-        label="Pitch error",
+        color="C1",
+        label="Pitch FSS",
     )
+
+    if plot_errs:
+        plot_cxctime(
+            dat["times"],
+            roll_err,
+            ".-",
+            color="C1",
+            ax=axs[1, 0],
+            ms=3,
+            lw=0.25,
+            label="Roll error",
+        )
+        plot_cxctime(
+            dat["times"],
+            pitch_err,
+            ".-",
+            color="C1",
+            ax=axs[1, 1],
+            ms=3,
+            lw=0.25,
+            label="Pitch error",
+        )
+        axs[1, 0].set_ylabel("Roll error (deg)")
+        axs[1, 1].set_ylabel("Pitch error (deg)")
+        set_min_axis_range(axs[1, 0], 1.0)
+        set_min_axis_range(axs[1, 1], 1.0)
 
     axs[0, 0].legend(loc="best")
     axs[0, 1].legend(loc="best")
     axs[0, 0].set_ylabel("Roll (deg)")
-    axs[1, 0].set_ylabel("Roll error (deg)")
     axs[0, 1].set_ylabel("Pitch (deg)")
-    axs[1, 1].set_ylabel("Pitch error (deg)")
-    set_min_axis_range(axs[1, 0], 1.0)
-    set_min_axis_range(axs[1, 1], 1.0)
+    if suptitle is not None:
+        plt.suptitle(suptitle)
     plt.tight_layout()
-
 
 def plot_pitch_roll_spm_mp_constraints(dat):
     from ska_sun import ROLL_TABLE

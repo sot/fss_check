@@ -125,24 +125,21 @@ def main(args=None):
         dats["recent"], outfile=outdir / "delta_pitch_roll_vs_pitch_roll_recent.png"
     )
 
-    large_pitch_roll_errors = {}
-    for axis in ["roll"]:
-        large_pitch_roll_errors[axis] = get_large_pitch_roll_error_intervals(
-            dats["recent"],
-            axis=axis,
-            max_pitch=CONFIG["get_large_pitch_roll_error_intervals"]["max_pitch"],
-            max_err=CONFIG["get_large_pitch_roll_error_intervals"]["max_err"],
-            dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
+    large_pitch_roll_error = get_large_pitch_roll_error_intervals(
+        dats["recent"],
+        max_pitch=CONFIG["get_large_pitch_roll_error_intervals"]["max_pitch"],
+        max_err=CONFIG["get_large_pitch_roll_error_intervals"]["max_err"],
+        dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
+    )
+    tr_classes = []
+    for row in large_pitch_roll_error:
+        recent = (
+            stop - CxoTime(row["datestart"]) < args.highlight_recent_days * u.day
         )
-        tr_classes = []
-        for row in large_pitch_roll_errors[axis]:
-            recent = (
-                CxoTime.now() - CxoTime(row["datestart"])
-                < args.highlight_recent_days * u.day
-            )
-            tr_class = 'class="pink-bkg"' if recent else ""
-            tr_classes.append(tr_class)
-        large_pitch_roll_errors["tr_class"] = tr_classes
+        tr_class = 'class="pink-bkg"' if recent else ""
+        tr_classes.append(tr_class)
+    large_pitch_roll_error["tr_class"] = tr_classes
+    large_pitch_roll_error.sort("datestart", reverse=True)
 
     # Write out the HTML report
     template = jinja2.Template((data_dir / "index.html").read_text())
@@ -152,7 +149,9 @@ def main(args=None):
         "stop": stop.date[:-4],
         "days_long_term": args.days_long_term,
         "days_recent": args.days_recent,
-        "large_roll_errors": large_pitch_roll_errors["roll"],
+        "large_pitch_roll_error": large_pitch_roll_error,
+        "config": CONFIG,
+        "axes": ["pitch", "roll"],
     }
     txt = template.render(**context)
     (outdir / "index.html").write_text(txt)
