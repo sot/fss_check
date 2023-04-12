@@ -351,12 +351,12 @@ def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=144):
 
     # Remove data during times of known bad or anomalous data.
     dat.filter_bad_times(table=CONFIG["exclude_intervals"])
-    events.eclipses.interval_pad = (1000, 1000)
+    events.eclipses.interval_pad = (600, 600)
     events.safe_suns.interval_pad = (0, 100000)
-    events.normal_suns.interval_pad = (1000, 10000)
+    events.normal_suns.interval_pad = (0, 10000)
     for msid in msids:
         dat[msid].remove_intervals(
-            events.eclipses | events.normal_suns  #  | events.safe_suns
+            events.eclipses | events.normal_suns | events.safe_suns
         )
 
     # Select data only in a limited pitch range

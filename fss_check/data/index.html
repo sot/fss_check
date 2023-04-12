@@ -66,61 +66,68 @@
         <tr>
     </table>
 
-    <h4> Intervals of pitch or roll error >
-        {{config["get_large_pitch_roll_error_intervals"]["max_err"]}} deg for pitch <
-            {{config["get_large_pitch_roll_error_intervals"]["max_pitch"]}} deg </h4>
-            <table class="border">
-                <tr>
-                    <th> Date </th>
-                    <th> Duration </th>
-                    <th> Min pitch </th>
-                </tr>
-                {% for row in large_pitch_roll_error %}
-                <tr {{row['tr_class']}}>
-                    <td> {{row['datestart']}} </td>
-                    <td> {{ row['duration'] | round(1) }} </td>
-                    <td> {{ row['pitch_min'] | round(1) }} </td>
-                </tr>
-                {% endfor %}
-            </table>
+    <h4> Intervals of pitch or roll error &gt;
+        {{config["get_large_pitch_roll_error_intervals"]["max_err"]}} deg for pitch &lt;
+        {{config["get_large_pitch_roll_error_intervals"]["max_pitch"]}} deg </h4>
+    <table class="border">
+        <tr>
+            <th> Date </th>
+            <th> Duration </th>
+            <th> Pitch min </th>
+            <th> Pitch err max </th>
+            <th> Roll err max </th>
+        </tr>
+        {% for row in large_pitch_roll_error %}
+        <tr {%if row['recent']%}class="pink-bkg" {%endif%}>
+            <td> {{row['datestart']}} </td>
+            <td> {{ row['duration'] | round(1) }} </td>
+            <td> {{ row['pitch_min'] | round(2) }} </td>
+            <td> {{ row['pitch_err_max'] | round(2) }} </td>
+            <td> {{ row['roll_err_max'] | round(2) }} </td>
+        </tr>
+        {% endfor %}
+    </table>
 
-            <h3> Pitch / Roll errors vs. Pitch / Roll for recent data within
-                {{days_recent}} days </h3>
-            <img SRC="delta_pitch_roll_vs_pitch_roll_recent.png" width="800">
+    <h4>Interval detail plots of pitch / roll vs. time</h4>
+    {% for imgfile in pitch_roll_time_outfiles %}
+    <img SRC="{{imgfile}}" width="800">
+    {% endfor %}
 
-            <h3> FSS-Primary Historical Data </h3>
+    <h3> Pitch / Roll errors vs. Pitch / Roll for recent data within
+        {{days_recent}} days </h3>
+    <img SRC="delta_pitch_roll_vs_pitch_roll_recent.png" width="800">
 
-            <p>
-                The plots below illustrate behavior trends leading up to the
-                swap from FSS-A to
-                FSS-B as the primary FSS.
-            </p>
+    <h3> FSS-Primary Historical Data </h3>
 
-            <table>
-                <tr>
-                    <td> <img SRC="fss_prim_hist/pitch_bad_alpha.png" width="500"><br />
-                    </td>
-                    <td> <img SRC="fss_prim_hist/pitch_bad_alpha_sun.png"
-                            width="500"><br /> </td>
-                </tr>
-                <tr>
-                    <td> <img SRC="fss_prim_hist/pitch_alpha_no_sun.png"
-                            width="500"><br /> </td>
-                    <td> <img SRC="fss_prim_hist/pitch_beta_no_sun.png"
-                            width="500"><br /> </td>
-                </tr>
-            </table>
+    <p>
+        The plots below illustrate behavior trends leading up to the
+        swap from FSS-A to
+        FSS-B as the primary FSS.
+    </p>
 
-            <h3> Analysis data </h3>
-            The scripts and data used in this analysis are in
-            <tt>/proj/sot/ska/analysis/safemode_2012150/fss_check</tt>
-            and <a
-                href="https://github.com/sot/fss_check">https://github.com/sot/fss_check</a>.
+    <table>
+        <tr>
+            <td> <img SRC="fss_prim_hist/pitch_bad_alpha.png" width="500"><br />
+            </td>
+            <td> <img SRC="fss_prim_hist/pitch_bad_alpha_sun.png" width="500"><br />
+            </td>
+        </tr>
+        <tr>
+            <td> <img SRC="fss_prim_hist/pitch_alpha_no_sun.png" width="500"><br />
+            </td>
+            <td> <img SRC="fss_prim_hist/pitch_beta_no_sun.png" width="500"><br /> </td>
+        </tr>
+    </table>
 
-            <br></br>
+    <h3> Analysis data </h3>
+    The scripts and data used in this analysis are in
+    <tt>/proj/sot/ska/analysis/safemode_2012150/fss_check</tt>
+    and <a href="https://github.com/sot/fss_check">https://github.com/sot/fss_check</a>.
 
-            <!--#include virtual="/mta/ASPECT/footer.html"-->
-            <!--footer end-->
+    <br></br>
+
+    <!--#include virtual="/mta/ASPECT/footer.html"-->
+    <!--footer end-->
 
 </body>
 

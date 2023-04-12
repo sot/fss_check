@@ -14,7 +14,7 @@ from kadi import events
 from kadi.events.models import fuzz_states
 from Ska.Matplotlib import cxctime2plotdate, plot_cxctime, set_min_axis_range
 
-from fss_check.fss_utils import CONFIG, get_spm_pitch_roll
+from fss_check.fss_utils import get_spm_pitch_roll
 
 matplotlib.style.use("bmh")
 
@@ -63,7 +63,7 @@ def plot_pitch_for_data_with_large_errors(
         (~sun, "c.", "c", 1.0, "No Sun Presense (error > 8.0 deg)", 8.0),
         (sun, "bo", "b", 0.5, "Sun Presense (2.0 < error <= 4.0 deg)", 2.0),
         (sun, "mo", "m", 0.7, "Sun Presense (4.0 < error <= 8.0 deg)", 4.0),
-        (sun, "ro", "r", 1.0, "Sun Presense (error > 8.0 deg)", 8.0),
+        (sun, "C1o", "C1", 1.0, "Sun Presense (error > 8.0 deg)", 8.0),
     ]
     plt.figure()
     for filt, mark, mec, alpha, label, err_min in vals:
@@ -98,17 +98,27 @@ def get_large_pitch_roll_error_intervals(
     :returns: table of intervals with large pitch or roll errors
     """
     sun = dat["alpha_sun"] & dat["beta_sun"]
-    err_large = (np.abs(dat["pitch_err"]) > max_err) | (np.abs(dat["roll_err"]) > max_err)
+    err_large = (np.abs(dat["pitch_err"]) > max_err) | (
+        np.abs(dat["roll_err"]) > max_err
+    )
     ok = err_large & sun & (dat["pitch"] < max_pitch)
 
     intervals = logical_intervals(dat["times"], ok, max_gap=33)
     intervals = fuzz_states(intervals, dt_join)
     intervals["pitch_min"] = 0.0
+    intervals["pitch_err_max"] = 0.0
+    intervals["roll_err_max"] = 0.0
 
     for interval in intervals:
         tstart, tstop = interval["tstart"], interval["tstop"]
         i0, i1 = np.searchsorted(dat["times"], [tstart, tstop])
         interval["pitch_min"] = np.min(dat["pitch"][i0:i1])
+        imax = np.argmax(np.abs(dat["pitch_err"][i0:i1]))
+        interval["pitch_err_max"] = dat["pitch_err"][i0:i1][imax]
+        imax = np.argmax(np.abs(dat["roll_err"][i0:i1]))
+        interval["roll_err_max"] = dat["roll_err"][i0:i1][imax]
+
+    intervals.sort("datestart", reverse=True)
 
     return intervals
 
@@ -273,7 +283,7 @@ def plot_delta_vs_pitch_roll(dat: Table, outfile: Optional[str] = None):
 
 
 def plot_roll_pitch_vs_time(
-    dat, start, stop, pitch_max=135, plot_errs=False, suptitle=None
+    dat, start, stop, pitch_max=135, plot_errs=False, suptitle=None, outfile=None
 ):
     """Plot roll and pitch (OBC and FSS) vs. time.
 
@@ -373,6 +383,10 @@ def plot_roll_pitch_vs_time(
     if suptitle is not None:
         plt.suptitle(suptitle)
     plt.tight_layout()
+
+    if outfile:
+        plt.savefig(outfile)
+
 
 def plot_pitch_roll_spm_mp_constraints(dat):
     from ska_sun import ROLL_TABLE

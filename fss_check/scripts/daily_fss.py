@@ -18,6 +18,7 @@ from fss_check.check_fss import (
     plot_delta_vs_pitch_roll,
     plot_pitch_for_data_with_large_errors,
     get_large_pitch_roll_error_intervals,
+    plot_roll_pitch_vs_time,
 )
 from fss_check.fss_utils import (
     add_pitch_roll_columns,
@@ -95,20 +96,24 @@ def main(args=None):
         "recent": stop - args.days_recent * u.day,
     }
 
+    # Get data
     logger.info(f"Processing {starts['long_term'].date} to {stop.date}")
     get_data_func = get_fss_prim_data_cached if args.cache_data else get_fss_prim_data
     dat = get_data_func(starts["long_term"], stop)
     dat = add_pitch_roll_columns(dat)
 
+    # Extract a recent data subset
     i0 = np.searchsorted(dat["times"], starts["recent"].cxcsec)
     dats = {"long_term": dat, "recent": dat[i0:]}
 
+    # Last available date in data
     date_last = CxoTime(dat["times"][-1])
     date_last_local_fmt = get_formatted_local_time(date_last)
 
     outdir = Path(args.out)
     outdir.mkdir(parents=True, exist_ok=True)
 
+    # Classic plot of points with large > 2 deg pitch or roll errors
     for epoch in starts:
         start = starts[epoch]
         dat = dats[epoch]
@@ -121,25 +126,36 @@ def main(args=None):
                 axis=axis,
             )
 
+    # 2 x 2 grid of pitch/roll error vs pitch/roll
     plot_delta_vs_pitch_roll(
         dats["recent"], outfile=outdir / "delta_pitch_roll_vs_pitch_roll_recent.png"
     )
 
+    # Table of intervals of large (> 2 deg) pitch or roll errors
     large_pitch_roll_error = get_large_pitch_roll_error_intervals(
         dats["recent"],
         max_pitch=CONFIG["get_large_pitch_roll_error_intervals"]["max_pitch"],
         max_err=CONFIG["get_large_pitch_roll_error_intervals"]["max_err"],
         dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
     )
-    tr_classes = []
-    for row in large_pitch_roll_error:
-        recent = (
-            stop - CxoTime(row["datestart"]) < args.highlight_recent_days * u.day
+    dt = stop - CxoTime(large_pitch_roll_error["datestart"])
+    large_pitch_roll_error["recent"] = dt < args.highlight_recent_days * u.day
+
+    pitch_roll_time_outfiles = []
+    for interval in large_pitch_roll_error[:CONFIG["max_pitch_roll_time_plots"]]:
+        start = CxoTime(interval["datestart"]) - 5 * u.min
+        stop = CxoTime(interval["datestop"]) + 5 * u.min
+        outfile = outdir / f"pitch_roll_vs_time_{interval['datestart']}.png"
+        plot_roll_pitch_vs_time(
+            dat,
+            start,
+            stop,
+            pitch_max=CONFIG["plot_roll_pitch_vs_time"]["pitch_max"],
+            plot_errs=CONFIG["plot_roll_pitch_vs_time"]["plot_errs"],
+            outfile=outfile,
+            suptitle=interval["datestart"],
         )
-        tr_class = 'class="pink-bkg"' if recent else ""
-        tr_classes.append(tr_class)
-    large_pitch_roll_error["tr_class"] = tr_classes
-    large_pitch_roll_error.sort("datestart", reverse=True)
+        pitch_roll_time_outfiles.append(outfile.name)
 
     # Write out the HTML report
     template = jinja2.Template((data_dir / "index.html").read_text())
@@ -152,6 +168,7 @@ def main(args=None):
         "large_pitch_roll_error": large_pitch_roll_error,
         "config": CONFIG,
         "axes": ["pitch", "roll"],
+        "pitch_roll_time_outfiles": pitch_roll_time_outfiles,
     }
     txt = template.render(**context)
     (outdir / "index.html").write_text(txt)

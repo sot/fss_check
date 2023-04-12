@@ -10,3 +10,9 @@ get_large_pitch_roll_error_intervals:
   max_pitch: 136.0
   max_err: 2.0
   dt_join: 100
+
+plot_roll_pitch_vs_time:
+  pitch_max: 136
+  plot_errs: false
+
+max_pitch_roll_time_plots: 4
