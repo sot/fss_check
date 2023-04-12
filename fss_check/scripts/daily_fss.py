@@ -14,19 +14,19 @@ from cxotime import CxoTime, CxoTimeLike
 from ska_helpers.logging import basic_logger
 
 import fss_check
+import fss_check.config
 from fss_check.check_fss import (
+    get_large_pitch_roll_error_intervals,
     plot_delta_vs_pitch_roll,
     plot_pitch_for_data_with_large_errors,
-    get_large_pitch_roll_error_intervals,
     plot_roll_pitch_vs_time,
 )
+from fss_check.config import CONFIG
 from fss_check.fss_utils import (
     add_pitch_roll_columns,
     get_fss_prim_data,
     get_fss_prim_data_cached,
-    CONFIG,
 )
-
 
 logger = basic_logger("fss_check")
 
@@ -36,6 +36,12 @@ def get_parser():
         description="Daily Fine Sun Sensor monitoring and trending"
     )
     parser.add_argument("--out", type=str, default=".", help="Output data directory")
+    parser.add_argument(
+        "--config-dir",
+        type=str,
+        default='.',
+        help="Config directory (default=current directory)",
+    )
     parser.add_argument(
         "--days-recent",
         default=10,
@@ -83,6 +89,9 @@ def main(args=None):
     matplotlib.use("Agg")
 
     args = get_parser().parse_args(args)
+
+    # TODO: improve this
+    fss_check.config.CONFIG_DIR = args.config_dir
 
     if args.days_recent > args.days_long_term:
         raise ValueError("recent days must be <= long term days")
@@ -134,8 +143,8 @@ def main(args=None):
     # Table of intervals of large (> 2 deg) pitch or roll errors
     large_pitch_roll_error = get_large_pitch_roll_error_intervals(
         dats["recent"],
-        max_pitch=CONFIG["get_large_pitch_roll_error_intervals"]["max_pitch"],
-        max_err=CONFIG["get_large_pitch_roll_error_intervals"]["max_err"],
+        pitch_max=CONFIG["spm_pitch_warning"],
+        err_min=CONFIG["get_large_pitch_roll_error_intervals"]["err_min"],
         dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
     )
     dt = stop - CxoTime(large_pitch_roll_error["datestart"])
@@ -150,7 +159,7 @@ def main(args=None):
             dat,
             start,
             stop,
-            pitch_max=CONFIG["plot_roll_pitch_vs_time"]["pitch_max"],
+            pitch_max=CONFIG["spm_pitch_warning"],
             plot_errs=CONFIG["plot_roll_pitch_vs_time"]["plot_errs"],
             outfile=outfile,
             suptitle=interval["datestart"],

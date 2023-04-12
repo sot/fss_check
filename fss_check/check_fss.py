@@ -46,6 +46,8 @@ def plot_pitch_for_data_with_large_errors(
     stop: Optional[CxoTimeLike] = None,
     outfile: Optional[str] = None,
     axis: str = "roll",
+    pitch_warning: float = 137.0,
+    pitch_limit: float = 135.0,
 ):
     """Plot pitch for all points where `axis` value error > angle_err_lim.
 
@@ -78,30 +80,33 @@ def plot_pitch_for_data_with_large_errors(
 
     set_plot_limits(start, stop)
 
+    plt.axhline(pitch_warning, color="g", linestyle="--", linewidth=1.5)
+    plt.axhline(pitch_limit, color="r", linestyle="--", linewidth=1.5)
+
     if outfile is not None:
         plt.savefig(outfile)
 
 
 def get_large_pitch_roll_error_intervals(
     dat: Table,
-    max_pitch: float = 135,
-    max_err: float = 2.0,
+    pitch_max: float = 135,
+    err_min: float = 2.0,
     dt_join: float = 100,
 ) -> Table:
-    """Return Table of points with large pitch or roll errors.
+    """Return intervals with pitch < pitch_warning and pitch / roll err > err_min
 
     :param dat: data table
     :param axis: 'roll' or 'pitch'
-    :param max_pitch: max pitch value (deg)
-    :param max_err: max pitch or roll error (deg)
+    :param pitch_warning: pitch value below which pitch/roll errs are considered (deg)
+    :param err_min: min pitch or roll error (deg)
     :param dt_join: time delta (secs) to join intervals
     :returns: table of intervals with large pitch or roll errors
     """
     sun = dat["alpha_sun"] & dat["beta_sun"]
-    err_large = (np.abs(dat["pitch_err"]) > max_err) | (
-        np.abs(dat["roll_err"]) > max_err
+    err_large = (np.abs(dat["pitch_err"]) > err_min) | (
+        np.abs(dat["roll_err"]) > err_min
     )
-    ok = err_large & sun & (dat["pitch"] < max_pitch)
+    ok = err_large & sun & (dat["pitch"] < pitch_max)
 
     intervals = logical_intervals(dat["times"], ok, max_gap=33)
     intervals = fuzz_states(intervals, dt_join)

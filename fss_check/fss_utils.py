@@ -1,38 +1,14 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 """FSS utilities"""
-import os
-from pathlib import Path
-
 import cheta.fetch_eng as fetch
 import numpy as np
 import ska_numpy
-import yaml
 from astropy.table import Table
 from cxotime import CxoTime
 from kadi import events
-from ska_helpers.utils import LazyDict
 
-SKA = Path(os.environ["SKA"])
-
-
-def _load_config_file():
-    """Load fss_check_config.yaml from current dir or $SKA/data/fss_check"""
-    for config_dir, from_ska in [(".", False), (SKA / "data" / "fss_check", True)]:
-        path = Path(config_dir) / "fss_check_config.yml"
-        if path.exists():
-            break
-
-    with open(path) as fh:
-        config = yaml.safe_load(fh)
-
-    config['config_path'] = str(path.absolute())
-    config['config_from_ska'] = from_ska
-
-    return config
-
-
-CONFIG = LazyDict(load_func=_load_config_file)
+from fss_check.config import CONFIG
 
 # ### FSS counts to angle calibration on OBC
 #

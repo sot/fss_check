@@ -67,8 +67,8 @@
     </table>
 
     <h4> Intervals of pitch or roll error &gt;
-        {{config["get_large_pitch_roll_error_intervals"]["max_err"]}} deg for pitch &lt;
-        {{config["get_large_pitch_roll_error_intervals"]["max_pitch"]}} deg </h4>
+        {{config["get_large_pitch_roll_error_intervals"]["err_min"]}} deg for pitch &lt;
+        {{config["spm_pitch_warning"]}} deg </h4>
     <table class="border">
         <tr>
             <th> Date </th>
@@ -93,7 +93,8 @@
     <img SRC="{{imgfile}}" width="800">
     {% endfor %}
 
-    <h3> Pitch / Roll errors vs. Pitch / Roll for recent data within
+    <h3> Pitch / Roll errors vs. Pitch / Roll within SPM pitch limit
+        {{config["spm_pitch_limit"]}} deg and within
         {{days_recent}} days </h3>
     <img SRC="delta_pitch_roll_vs_pitch_roll_recent.png" width="800">
 
