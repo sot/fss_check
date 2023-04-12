@@ -269,7 +269,7 @@ def get_pitch_roll_fss(alpha, beta, fss="b", obc=True):
     return pitch_fss, roll_fss
 
 
-def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=144):
+def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=142):
     """
     Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
 

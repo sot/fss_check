@@ -48,6 +48,7 @@ def plot_pitch_for_data_with_large_errors(
     axis: str = "roll",
     pitch_warning: float = 137.0,
     pitch_limit: float = 135.0,
+    plot_pitch_min: float = 120.0,  # Lower limit for pitch plot
 ):
     """Plot pitch for all points where `axis` value error > angle_err_lim.
 
@@ -72,9 +73,24 @@ def plot_pitch_for_data_with_large_errors(
         ok = (abs(pitch_roll_err) > err_min) & filt
         if np.any(ok):
             logger.info(f" {label} {np.count_nonzero(ok)}")
-            plot_cxctime(times[ok], pitch[ok], mark, mec=mec, label=label, alpha=alpha)
+            tok = times[ok]
+            pok = pitch[ok]
+            clip = pok < plot_pitch_min
+            pok = pok.clip(plot_pitch_min, None)
+            # Plot clip points as down pointing arrows
+            plot_cxctime(tok, pok, mark, mec=mec, label=label, alpha=alpha)
+            if np.any(clip):
+                plot_cxctime(
+                    tok[clip],
+                    pok[clip],
+                    marker="v",
+                    color=mec,
+                    mec=mec,
+                    markersize=6,
+                    alpha=alpha,
+                )
 
-    plt.legend(loc="upper left", fancybox=True, framealpha=0.9, fontsize="small")
+    plt.legend(loc="best", fancybox=True, framealpha=0.8, fontsize="small")
     plt.title(f"Pitch for {axis} error > threshold")
     plt.ylabel("Pitch (deg)")
 
@@ -92,6 +108,7 @@ def get_large_pitch_roll_error_intervals(
     pitch_max: float = 135,
     err_min: float = 2.0,
     dt_join: float = 100,
+    sun_presence: bool = True,
 ) -> Table:
     """Return intervals with pitch < pitch_warning and pitch / roll err > err_min
 
@@ -100,13 +117,15 @@ def get_large_pitch_roll_error_intervals(
     :param pitch_warning: pitch value below which pitch/roll errs are considered (deg)
     :param err_min: min pitch or roll error (deg)
     :param dt_join: time delta (secs) to join intervals
+    :param sun_presence: if True then include intervals with sun presence, else ~sun
     :returns: table of intervals with large pitch or roll errors
     """
     sun = dat["alpha_sun"] & dat["beta_sun"]
+    sun_mask = sun if sun_presence else ~sun
     err_large = (np.abs(dat["pitch_err"]) > err_min) | (
         np.abs(dat["roll_err"]) > err_min
     )
-    ok = err_large & sun & (dat["pitch"] < pitch_max)
+    ok = err_large & sun_mask & (dat["pitch"] < pitch_max)
 
     intervals = logical_intervals(dat["times"], ok, max_gap=33)
     intervals = fuzz_states(intervals, dt_join)
@@ -214,7 +233,12 @@ def plot_pitches(
             plt.savefig("pitch_" + ident + suff + start_suffix + ".png")
 
 
-def plot_delta_vs_pitch_roll(dat: Table, outfile: Optional[str] = None):
+def plot_delta_vs_pitch_roll(
+    dat: Table,
+    max_pitch: float = 135.0,
+    err_lim: float = 2.0,
+    outfile: Optional[str] = None,
+):
     """Plot delta pitch and delta roll vs. pitch and roll.
 
     This results in a 2x2 plot with the following subplots:
@@ -234,7 +258,7 @@ def plot_delta_vs_pitch_roll(dat: Table, outfile: Optional[str] = None):
     marker = "."
     marker_size = 1
 
-    ok_pitch = dat["pitch"] < 135
+    ok_pitch = dat["pitch"] < max_pitch
     _, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2, 2, figsize=(8, 6))
 
     def plot_one(ax, xaxis, yaxis):
@@ -257,30 +281,24 @@ def plot_delta_vs_pitch_roll(dat: Table, outfile: Optional[str] = None):
             ("Kalman", "Not Kalman"),
         ):
             ax.plot(x[mask], y[mask], marker, color=color, ms=marker_size, label=label)
-            bad = np.abs(y[mask]) > 1.5
+            bad = np.abs(y[mask]) > err_lim
             if np.any(bad):
                 ax.plot(x[mask][bad], y[mask][bad], marker, color=color)
         ax.margins(0.05)
         ax.set_xlabel(f"{xaxis.capitalize()} (deg)")
         ax.set_ylabel(f"Delta {yaxis} (deg)")
         ax.set_title(f"FSS {yaxis} - OBC {yaxis} vs. {xaxis}")
-        x0, x1 = ax.get_xlim()
-        ax.hlines(
-            [1.5, -1.5], xmin=x0, xmax=x1, color="r", linestyle="dashed", alpha=0.5
-        )
-        ax.set_xlim(x0, x1)
+        for y in [-err_lim, err_lim]:
+            ax.axhline(y, color="r", linestyle="dashed", alpha=0.5)
+
         if xaxis == "pitch" and yaxis == "roll":
             ax.legend(loc="upper left")
 
-    # fmt: off
     plot_one(ax0, "roll", "pitch")
     plot_one(ax1, "pitch", "pitch")
     plot_one(ax2, "roll", "roll")
     plot_one(ax3, "pitch", "roll")
-    # fmt: on
 
-    year = CxoTime(dat["times"][0]).date[:4]
-    plt.suptitle(f"FSS data for {year} through {CxoTime(dat['times'][-1]).date}")
     plt.tight_layout()
 
     if outfile:
@@ -387,19 +405,21 @@ def plot_roll_pitch_vs_time(
     axs[0, 1].set_ylabel("Pitch (deg)")
     if suptitle is not None:
         plt.suptitle(suptitle)
+    for ax in axs.flat:
+        set_min_axis_range(ax, 2.0)
     plt.tight_layout()
 
     if outfile:
         plt.savefig(outfile)
 
 
-def plot_pitch_roll_spm_mp_constraints(dat):
+def plot_pitch_roll_spm_mp_constraints(dat, pitch_max=135.0, outfile=None):
     from ska_sun import ROLL_TABLE
 
     plt.figure(figsize=(12, 8))
     pitch, roll = get_spm_pitch_roll()
     plt.plot(pitch, roll, color="C1", label="SPM limit")
-    ok = dat["alpha_sun"] & dat["beta_sun"] & (dat["pitch"] < 135)
+    ok = dat["alpha_sun"] & dat["beta_sun"] & (dat["pitch"] < pitch_max)
     dok = dat[ok]
     plt.plot(dok["pitch_fss"], dok["roll_fss"], ".", ms=1, alpha=0.5, color="C0")
     bad = np.abs(dok["roll_fss"] - dok["roll"]) > 1.0
@@ -431,11 +451,10 @@ def plot_pitch_roll_spm_mp_constraints(dat):
     plt.xlim(None, 140)
     plt.xlabel("Pitch (deg)")
     plt.ylabel("Roll (deg)")
-    plt.title(
-        "Pitch and roll from FSS data 2022 and 2023 through "
-        f'{CxoTime(dat["times"][-1]).date}'
-    )
     plt.legend(loc="upper left")
+
+    if outfile:
+        plt.savefig(outfile)
 
 
 def plot_no_sun_presence(dat):

@@ -9,6 +9,7 @@ import astropy.units as u
 import jinja2
 import matplotlib
 import numpy as np
+from astropy.table import vstack
 from cheta import fetch_eng as fetch
 from cxotime import CxoTime, CxoTimeLike
 from ska_helpers.logging import basic_logger
@@ -19,6 +20,7 @@ from fss_check.check_fss import (
     get_large_pitch_roll_error_intervals,
     plot_delta_vs_pitch_roll,
     plot_pitch_for_data_with_large_errors,
+    plot_pitch_roll_spm_mp_constraints,
     plot_roll_pitch_vs_time,
 )
 from fss_check.config import CONFIG
@@ -39,7 +41,7 @@ def get_parser():
     parser.add_argument(
         "--config-dir",
         type=str,
-        default='.',
+        default=".",
         help="Config directory (default=current directory)",
     )
     parser.add_argument(
@@ -131,14 +133,11 @@ def main(args=None):
                 dat=dat,
                 start=start,
                 stop=stop,
+                pitch_warning=CONFIG["spm_pitch_warning"],
+                pitch_limit=CONFIG["spm_pitch_limit"],
                 outfile=outdir / f"pitch_bad_{axis}_{epoch}.png",
                 axis=axis,
             )
-
-    # 2 x 2 grid of pitch/roll error vs pitch/roll
-    plot_delta_vs_pitch_roll(
-        dats["recent"], outfile=outdir / "delta_pitch_roll_vs_pitch_roll_recent.png"
-    )
 
     # Table of intervals of large (> 2 deg) pitch or roll errors
     large_pitch_roll_error = get_large_pitch_roll_error_intervals(
@@ -146,12 +145,30 @@ def main(args=None):
         pitch_max=CONFIG["spm_pitch_warning"],
         err_min=CONFIG["get_large_pitch_roll_error_intervals"]["err_min"],
         dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
+        sun_presence=True,
     )
     dt = stop - CxoTime(large_pitch_roll_error["datestart"])
     large_pitch_roll_error["recent"] = dt < args.highlight_recent_days * u.day
 
+    # Table of intervals of large (> 2 deg) pitch or roll errors
+    large_prerr_no_sun = get_large_pitch_roll_error_intervals(
+        dats["recent"],
+        pitch_max=CONFIG["spm_pitch_limit"],
+        err_min=CONFIG["get_large_pitch_roll_error_intervals"]["err_min"],
+        dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
+        sun_presence=False,
+    )
+    dt = stop - CxoTime(large_prerr_no_sun["datestart"])
+    large_prerr_no_sun["recent"] = dt < args.highlight_recent_days * u.day
+
     pitch_roll_time_outfiles = []
-    for interval in large_pitch_roll_error[:CONFIG["max_pitch_roll_time_plots"]]:
+    pitch_roll_time_table = vstack(
+        [
+            large_pitch_roll_error[: CONFIG["max_pitch_roll_time_plots"]],
+            large_prerr_no_sun[: CONFIG["max_pitch_roll_time_plots"]],
+        ]
+    )
+    for interval in pitch_roll_time_table:
         start = CxoTime(interval["datestart"]) - 5 * u.min
         stop = CxoTime(interval["datestop"]) + 5 * u.min
         outfile = outdir / f"pitch_roll_vs_time_{interval['datestart']}.png"
@@ -166,6 +183,19 @@ def main(args=None):
         )
         pitch_roll_time_outfiles.append(outfile.name)
 
+    # 2 x 2 grid of pitch/roll error vs pitch/roll for data within SPM pitch limit
+    plot_delta_vs_pitch_roll(
+        dats["recent"],
+        max_pitch=CONFIG["spm_pitch_limit"],
+        err_lim=CONFIG["plot_delta_vs_pitch_roll"]["err_lim"],
+        outfile=outdir / "delta_pitch_roll_vs_pitch_roll_recent.png",
+    )
+
+    outfile = outdir / "pitch_roll_spm_mp_constraints_recent.png"
+    plot_pitch_roll_spm_mp_constraints(
+        dats["recent"], pitch_max=CONFIG["spm_pitch_limit"], outfile=outfile
+    )
+
     # Write out the HTML report
     template = jinja2.Template((data_dir / "index.html").read_text())
     context = {
@@ -175,6 +205,7 @@ def main(args=None):
         "days_long_term": args.days_long_term,
         "days_recent": args.days_recent,
         "large_pitch_roll_error": large_pitch_roll_error,
+        "large_prerr_no_sun": large_prerr_no_sun,
         "config": CONFIG,
         "axes": ["pitch", "roll"],
         "pitch_roll_time_outfiles": pitch_roll_time_outfiles,

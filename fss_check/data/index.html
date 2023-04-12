@@ -40,6 +40,8 @@
     <h2> FSS-B Performance Trending through stop={{date_last}} ({{date_last_local}})
     </h2>
 
+    Configuration file: {{config["config_path"]}}
+
     <h3> Pitch Angles for Bad Data </h3>
 
     <p>The plots below show the sun pitch angle for data points where the FSS-B
@@ -68,7 +70,7 @@
 
     <h4> Intervals of pitch or roll error &gt;
         {{config["get_large_pitch_roll_error_intervals"]["err_min"]}} deg for pitch &lt;
-        {{config["spm_pitch_warning"]}} deg </h4>
+        {{config["spm_pitch_warning"]}} deg with sun presence</h4>
     <table class="border">
         <tr>
             <th> Date </th>
@@ -88,6 +90,28 @@
         {% endfor %}
     </table>
 
+    <h4> Intervals of pitch or roll error &gt;
+        {{config["get_large_pitch_roll_error_intervals"]["err_min"]}} deg for pitch &lt;
+        {{config["spm_pitch_limit"]}} deg with no sun presence</h4>
+    <table class="border">
+        <tr>
+            <th> Date </th>
+            <th> Duration </th>
+            <th> Pitch min </th>
+            <th> Pitch err max </th>
+            <th> Roll err max </th>
+        </tr>
+        {% for row in large_prerr_no_sun %}
+        <tr {%if row['recent']%}class="pink-bkg" {%endif%}>
+            <td> {{row['datestart']}} </td>
+            <td> {{ row['duration'] | round(1) }} </td>
+            <td> {{ row['pitch_min'] | round(2) }} </td>
+            <td> {{ row['pitch_err_max'] | round(2) }} </td>
+            <td> {{ row['roll_err_max'] | round(2) }} </td>
+        </tr>
+        {% endfor %}
+    </table>
+
     <h4>Interval detail plots of pitch / roll vs. time</h4>
     {% for imgfile in pitch_roll_time_outfiles %}
     <img SRC="{{imgfile}}" width="800">
@@ -97,6 +121,11 @@
         {{config["spm_pitch_limit"]}} deg and within
         {{days_recent}} days </h3>
     <img SRC="delta_pitch_roll_vs_pitch_roll_recent.png" width="800">
+
+    <h3> Pitch / Roll points within SPM pitch limit
+        {{config["spm_pitch_limit"]}} deg and within
+        {{days_recent}} days </h3>
+    <img SRC="pitch_roll_spm_mp_constraints_recent.png" width="1000">
 
     <h3> FSS-Primary Historical Data </h3>
 
