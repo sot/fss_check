@@ -49,6 +49,7 @@ def plot_pitch_for_data_with_large_errors(
     pitch_warning: float = 137.0,
     pitch_limit: float = 135.0,
     plot_pitch_min: float = 120.0,  # Lower limit for pitch plot
+    show_legend=True,
 ):
     """Plot pitch for all points where `axis` value error > angle_err_lim.
 
@@ -90,7 +91,8 @@ def plot_pitch_for_data_with_large_errors(
                     alpha=alpha,
                 )
 
-    plt.legend(loc="best", fancybox=True, framealpha=0.8, fontsize="small")
+    if show_legend:
+        plt.legend(loc="upper left", fancybox=True, framealpha=1.0, fontsize="small")
     plt.title(f"Pitch for {axis} error > threshold")
     plt.ylabel("Pitch (deg)")
 
@@ -417,7 +419,7 @@ def plot_roll_pitch_vs_time(
 def plot_pitch_roll_spm_mp_constraints(
     dat, pitch_max=135.0, err_caution=1.0, err_warning=2.0, outfile=None
 ):
-    from ska_sun import ROLL_TABLE
+    from ska_sun import allowed_rolldev
 
     plt.figure(figsize=(12, 8))
     pitch, roll = get_spm_pitch_roll()
@@ -443,14 +445,17 @@ def plot_pitch_roll_spm_mp_constraints(
         ms=8,
         label=f"FSS roll err > {err_warning} deg",
     )
+    pitches = np.arange(45, 180, 0.1)
+    off_nom_rolls = allowed_rolldev(pitches)
+    ok = off_nom_rolls > 0
     plt.plot(
-        ROLL_TABLE.val["pitch"],
-        ROLL_TABLE.val["rolldev"],
+        pitches[ok],
+        off_nom_rolls[ok],
         color="C1",
         lw=1,
         label="Planning limit",
     )
-    plt.plot(ROLL_TABLE.val["pitch"], -ROLL_TABLE.val["rolldev"], color="C1", lw=1)
+    plt.plot(pitches[ok], -off_nom_rolls[ok], color="C1", lw=1)
     plt.xlim(None, 140)
     plt.xlabel("Pitch (deg)")
     plt.ylabel("Roll (deg)")

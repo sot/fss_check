@@ -125,18 +125,23 @@ def main(args=None):
     outdir.mkdir(parents=True, exist_ok=True)
 
     # Classic plot of points with large > 2 deg pitch or roll errors
-    for epoch in starts:
+    for i_epoch, epoch in enumerate(starts):
         start = starts[epoch]
         dat = dats[epoch]
         for axis in ["pitch", "roll"]:
+            show_legend = i_epoch == 0 and axis == "pitch"
             plot_pitch_for_data_with_large_errors(
                 dat=dat,
                 start=start,
                 stop=stop,
                 pitch_warning=CONFIG["spm_pitch_warning"],
                 pitch_limit=CONFIG["spm_pitch_limit"],
+                plot_pitch_min=CONFIG["plot_pitch_for_data_with_large_errors"][
+                    "plot_pitch_min"
+                ],
                 outfile=outdir / f"pitch_bad_{axis}_{epoch}.png",
                 axis=axis,
+                show_legend=show_legend,
             )
 
     # Table of intervals of large (> 2 deg) pitch or roll errors
@@ -195,8 +200,8 @@ def main(args=None):
     plot_pitch_roll_spm_mp_constraints(
         dats["recent"],
         pitch_max=CONFIG["spm_pitch_limit"],
-        err_caution=CONFIG["pitch_roll_spm_mp_constraints"]["err_caution"],
-        err_warning=CONFIG["pitch_roll_spm_mp_constraints"]["err_warning"],
+        err_caution=CONFIG["plot_pitch_roll_spm_mp_constraints"]["err_caution"],
+        err_warning=CONFIG["plot_pitch_roll_spm_mp_constraints"]["err_warning"],
         outfile=outfile,
     )
 

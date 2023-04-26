@@ -13,6 +13,9 @@ get_large_pitch_roll_error_intervals:
   err_min: 2.0  # Minimum pitch / roll error
   dt_join: 10  # Join adjacent intervals within this time (secs)
 
+plot_pitch_for_data_with_large_errors:
+  plot_pitch_min: 120.0
+
 plot_roll_pitch_vs_time:
   plot_errs: false
 
