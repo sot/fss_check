@@ -46,15 +46,27 @@ def get_parser():
     )
     parser.add_argument(
         "--days-recent",
-        default=10,
+        default=30,
         type=int,
         help="Number of days before --stop for recent plots",
     )
     parser.add_argument(
+        "--days-table",
+        default=90,
+        type=int,
+        help="Number of days before --stop for table of large pitch/roll errors",
+    )
+    parser.add_argument(
         "--days-long-term",
-        default=20,
+        default=360,
         type=int,
         help="Number of days before --stop for long term plots",
+    )
+    parser.add_argument(
+        "--highlight-recent-days",
+        type=float,
+        default=30.0,
+        help="Number of days to highlight in plots and table (days, default=30)",
     )
     parser.add_argument("--stop", type=str, help="Stop date (default=now)")
     parser.add_argument(
@@ -75,12 +87,6 @@ def get_parser():
         action="store_true",
         default=False,
         help="Cache data locally in ./cache (mostly for testing)",
-    )
-    parser.add_argument(
-        "--highlight-recent-days",
-        type=float,
-        default=30.0,
-        help="Number of days to highlight in plots and table (days, default=30)",
     )
     return parser
 
@@ -105,6 +111,7 @@ def main(args=None):
     starts = {
         "long_term": stop - args.days_long_term * u.day,
         "recent": stop - args.days_recent * u.day,
+        "table": stop - args.days_table * u.day,
     }
 
     # Get data
@@ -114,8 +121,10 @@ def main(args=None):
     dat = add_pitch_roll_columns(dat)
 
     # Extract a recent data subset
-    i0 = np.searchsorted(dat["times"], starts["recent"].cxcsec)
-    dats = {"long_term": dat, "recent": dat[i0:]}
+    dats = {"long_term": dat}
+    for subset in ["recent", "table"]:
+        i0 = np.searchsorted(dat["times"], starts[subset].cxcsec)
+        dats[subset] = dat[i0:]
 
     # Last available date in data
     date_last = CxoTime(dat["times"][-1])
@@ -145,19 +154,19 @@ def main(args=None):
             )
 
     # Table of intervals of large (> 2 deg) pitch or roll errors
-    large_pitch_roll_error = get_large_pitch_roll_error_intervals(
-        dats["recent"],
+    large_pr_error_sun = get_large_pitch_roll_error_intervals(
+        dats["table"],
         pitch_max=CONFIG["spm_pitch_warning"],
         err_min=CONFIG["get_large_pitch_roll_error_intervals"]["err_min"],
         dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
         sun_presence=True,
     )
-    dt = stop - CxoTime(large_pitch_roll_error["datestart"])
-    large_pitch_roll_error["recent"] = dt < args.highlight_recent_days * u.day
+    dt = stop - CxoTime(large_pr_error_sun["datestart"])
+    large_pr_error_sun["recent"] = dt < args.highlight_recent_days * u.day
 
     # Table of intervals of large (> 2 deg) pitch or roll errors
     large_prerr_no_sun = get_large_pitch_roll_error_intervals(
-        dats["recent"],
+        dats["table"],
         pitch_max=CONFIG["spm_pitch_limit"],
         err_min=CONFIG["get_large_pitch_roll_error_intervals"]["err_min"],
         dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
@@ -169,11 +178,13 @@ def main(args=None):
     pitch_roll_time_outfiles = []
     pitch_roll_time_table = vstack(
         [
-            large_pitch_roll_error[: CONFIG["max_pitch_roll_time_plots"]],
+            large_pr_error_sun[: CONFIG["max_pitch_roll_time_plots"]],
             large_prerr_no_sun[: CONFIG["max_pitch_roll_time_plots"]],
         ]
     )
     for interval in pitch_roll_time_table:
+        if not interval["recent"]:
+            continue
         start = CxoTime(interval["datestart"]) - 5 * u.min
         stop = CxoTime(interval["datestop"]) + 5 * u.min
         outfile = outdir / f"pitch_roll_vs_time_{interval['datestart']}.png"
@@ -213,7 +224,8 @@ def main(args=None):
         "stop": stop.date[:-4],
         "days_long_term": args.days_long_term,
         "days_recent": args.days_recent,
-        "large_pitch_roll_error": large_pitch_roll_error,
+        "days_table": args.days_table,
+        "large_pitch_roll_error": large_pr_error_sun,
         "large_prerr_no_sun": large_prerr_no_sun,
         "config": CONFIG,
         "axes": ["pitch", "roll"],

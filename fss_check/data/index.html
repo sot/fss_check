@@ -70,7 +70,9 @@
 
     <h4> Intervals of pitch or roll error &gt;
         {{config["get_large_pitch_roll_error_intervals"]["err_min"]}} deg for pitch &lt;
-        {{config["spm_pitch_warning"]}} deg with sun presence</h4>
+        {{config["spm_pitch_warning"]}} deg with sun presence
+        within {{days_table}} days </h4>
+    </h4>
     <table class="border">
         <tr>
             <th> Date </th>
@@ -92,7 +94,9 @@
 
     <h4> Intervals of pitch or roll error &gt;
         {{config["get_large_pitch_roll_error_intervals"]["err_min"]}} deg for pitch &lt;
-        {{config["spm_pitch_limit"]}} deg with no sun presence</h4>
+        {{config["spm_pitch_limit"]}} deg with no sun presence
+        within {{days_table}} days
+    </h4>
     <table class="border">
         <tr>
             <th> Date </th>
@@ -112,7 +116,7 @@
         {% endfor %}
     </table>
 
-    <h4>Interval detail plots of pitch / roll vs. time</h4>
+    <h4>Interval detail plots of pitch / roll vs. time within {{days_recent}} days</h4>
     {% for imgfile in pitch_roll_time_outfiles %}
     <img SRC="{{imgfile}}" width="800">
     {% endfor %}
