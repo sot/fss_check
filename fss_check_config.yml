@@ -20,3 +20,7 @@ max_pitch_roll_time_plots: 10
 
 plot_delta_vs_pitch_roll:
   err_lim: 2.0  # Allowed pitch/roll error within SPM limit
+
+plot_pitch_roll_spm_mp_constraints:
+  err_caution: 1.0
+  err_warning: 2.0

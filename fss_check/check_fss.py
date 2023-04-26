@@ -129,9 +129,10 @@ def get_large_pitch_roll_error_intervals(
 
     intervals = logical_intervals(dat["times"], ok, max_gap=33)
     intervals = fuzz_states(intervals, dt_join)
-    intervals["pitch_min"] = 0.0
-    intervals["pitch_err_max"] = 0.0
-    intervals["roll_err_max"] = 0.0
+    n_intervals = len(intervals)
+    intervals["pitch_min"] = np.zeros(n_intervals, dtype=float)
+    intervals["pitch_err_max"] = np.zeros(n_intervals, dtype=float)
+    intervals["roll_err_max"] = np.zeros(n_intervals, dtype=float)
 
     for interval in intervals:
         tstart, tstop = interval["tstart"], interval["tstop"]
@@ -413,7 +414,9 @@ def plot_roll_pitch_vs_time(
         plt.savefig(outfile)
 
 
-def plot_pitch_roll_spm_mp_constraints(dat, pitch_max=135.0, outfile=None):
+def plot_pitch_roll_spm_mp_constraints(
+    dat, pitch_max=135.0, err_caution=1.0, err_warning=2.0, outfile=None
+):
     from ska_sun import ROLL_TABLE
 
     plt.figure(figsize=(12, 8))
@@ -422,23 +425,23 @@ def plot_pitch_roll_spm_mp_constraints(dat, pitch_max=135.0, outfile=None):
     ok = dat["alpha_sun"] & dat["beta_sun"] & (dat["pitch"] < pitch_max)
     dok = dat[ok]
     plt.plot(dok["pitch_fss"], dok["roll_fss"], ".", ms=1, alpha=0.5, color="C0")
-    bad = np.abs(dok["roll_fss"] - dok["roll"]) > 1.0
+    bad = np.abs(dok["roll_fss"] - dok["roll"]) > err_caution
     plt.plot(
         dok["pitch_fss"][bad],
         dok["roll_fss"][bad],
         ".",
         color="C1",
         ms=4,
-        label="FSS roll err > 1 deg",
+        label=f"FSS roll err > {err_caution} deg",
     )
-    bad = np.abs(dok["roll_fss"] - dok["roll"]) > 1.5
+    bad = np.abs(dok["roll_fss"] - dok["roll"]) > err_warning
     plt.plot(
         dok["pitch_fss"][bad],
         dok["roll_fss"][bad],
         ".",
         color="r",
         ms=8,
-        label="FSS roll err > 1.5 deg",
+        label=f"FSS roll err > {err_warning} deg",
     )
     plt.plot(
         ROLL_TABLE.val["pitch"],

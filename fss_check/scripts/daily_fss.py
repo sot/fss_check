@@ -193,7 +193,11 @@ def main(args=None):
 
     outfile = outdir / "pitch_roll_spm_mp_constraints_recent.png"
     plot_pitch_roll_spm_mp_constraints(
-        dats["recent"], pitch_max=CONFIG["spm_pitch_limit"], outfile=outfile
+        dats["recent"],
+        pitch_max=CONFIG["spm_pitch_limit"],
+        err_caution=CONFIG["pitch_roll_spm_mp_constraints"]["err_caution"],
+        err_warning=CONFIG["pitch_roll_spm_mp_constraints"]["err_warning"],
+        outfile=outfile,
     )
 
     # Write out the HTML report
