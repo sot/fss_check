@@ -117,6 +117,7 @@
     </table>
 
     <h4>Interval detail plots of pitch / roll vs. time within {{days_recent}} days</h4>
+    NOTE: FSS data (red) are only plotted when the FSS Sun Presence flag is True. <p />
     {% for imgfile in pitch_roll_time_outfiles %}
     <img SRC="{{imgfile}}" width="800">
     {% endfor %}
