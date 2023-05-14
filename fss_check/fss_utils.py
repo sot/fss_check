@@ -8,8 +8,6 @@ from astropy.table import Table
 from cxotime import CxoTime
 from kadi import events
 
-from fss_check.config import CONFIG
-
 # ### FSS counts to angle calibration on OBC
 #
 # This uses the on-board formula `angle = arctan(c0 + c1 * counts) + c2)`.
@@ -92,7 +90,7 @@ BETA_ANG = np.polyval(BETA_ANG_PC, COUNTS)
 # Variation of what will be in ska_helpers.utils
 
 
-def cache_file(fn):
+def cache_file(fn, ignore=None):
     """Cache the np.ndarray result of a function to a file.
 
     The cache file is in a local directory called "cache" and is named with the
@@ -103,6 +101,8 @@ def cache_file(fn):
     Parameters
     ----------
     fn : function
+    ignore : list of str, optional
+        List of keyword arguments to ignore when generating the cache file name.
 
     Returns
     -------
@@ -111,6 +111,9 @@ def cache_file(fn):
     import os
     from pathlib import Path
 
+    if ignore is None:
+        ignore = []
+
     def wrapped(*args, **kwargs):
         # define a wrapper that will finally call "fn" with all arguments
         # if cache exists -> load it and return its content
@@ -118,12 +121,11 @@ def cache_file(fn):
             args_str = "_" + "_".join([str(arg) for arg in args])
         else:
             args_str = ""
-        if kwargs:
-            kwargs_str = "_" + "_".join(
-                [f"{key}_{value}" for key, value in kwargs.items()]
-            )
-        else:
-            kwargs_str = ""
+        kwargs_strs = [
+            f"{key}_{value}" for key, value in kwargs.items() if key not in ignore
+        ]
+        kwargs_str = "_" + "_".join(kwargs_strs) if kwargs_strs else ""
+
         cachedir = Path("cache")
         cachedir.mkdir(exist_ok=True)
         cachefile = cachedir / f"{fn.__name__}{args_str}{kwargs_str}.npz"
@@ -269,7 +271,14 @@ def get_pitch_roll_fss(alpha, beta, fss="b", obc=True):
     return pitch_fss, roll_fss
 
 
-def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=142):
+def get_fss_prim_data(
+    start,
+    stop=None,
+    offset=0.9,
+    pitch0=40,
+    pitch1=142,
+    exclude_intervals=None,
+):
     """
     Get data for the primary FSS (FSS-A before ~2013:130:20:00:00, FSS-B after)
 
@@ -296,6 +305,8 @@ def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=142):
         Minimum pitch angle for data (deg)
     pitch1 : float
         Maximum pitch angle for data (deg)
+    exclude_intervals : list of str
+        Strings with start and stop dates seperated by space (optional)
 
     Returns
     -------
@@ -309,7 +320,7 @@ def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=142):
         "aopcadmd",
         "aoacaseq",
         "pitch",
-        "roll",  #
+        "roll",
         "aoalpang",
         "aobetang",
         "aoalpsun",
@@ -326,7 +337,8 @@ def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=142):
     dat.interpolate(times=dat["aoalpang"].times[1:-1], filter_bad=False)
 
     # Remove data during times of known bad or anomalous data.
-    dat.filter_bad_times(table=CONFIG["exclude_intervals"])
+    if exclude_intervals is not None:
+        dat.filter_bad_times(table=exclude_intervals)
     events.eclipses.interval_pad = (600, 600)
     events.safe_suns.interval_pad = (0, 100000)
     events.normal_suns.interval_pad = (0, 10000)
@@ -388,7 +400,7 @@ def get_fss_prim_data(start, stop=None, offset=0.9, pitch0=40, pitch1=142):
     return out
 
 
-get_fss_prim_data_cached = cache_file(get_fss_prim_data)
+get_fss_prim_data_cached = cache_file(get_fss_prim_data, ignore=["exclude_intervals"])
 
 
 def add_pitch_roll_columns(dat, obc=True):

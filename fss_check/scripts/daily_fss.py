@@ -14,9 +14,9 @@ from astropy.table import vstack
 from cheta import fetch_eng as fetch
 from cxotime import CxoTime, CxoTimeLike
 from ska_helpers.logging import basic_logger
+import yaml
 
 import fss_check
-import fss_check.config
 from fss_check.check_fss import (
     get_large_pitch_roll_error_intervals,
     plot_delta_vs_pitch_roll,
@@ -24,7 +24,6 @@ from fss_check.check_fss import (
     plot_pitch_roll_spm_mp_constraints,
     plot_roll_pitch_vs_time,
 )
-from fss_check.config import CONFIG
 from fss_check.fss_utils import (
     add_pitch_roll_columns,
     get_fss_prim_data,
@@ -32,6 +31,9 @@ from fss_check.fss_utils import (
 )
 
 logger = basic_logger("fss_check")
+
+# Global config for convenience. This gets updated in main() after reading config file.
+CONFIG = {}
 
 
 def get_parser():
@@ -42,7 +44,6 @@ def get_parser():
     parser.add_argument(
         "--config-dir",
         type=str,
-        default=".",
         help="Config directory (default=current directory)",
     )
     parser.add_argument(
@@ -105,8 +106,8 @@ def main(args=None):
 
     args = get_parser().parse_args(args)
 
-    # TODO: improve this
-    fss_check.config.CONFIG_DIR = args.config_dir
+    # Update global config with config file
+    CONFIG.update(get_config(args.config_dir))
 
     if args.days_recent > args.days_long_term:
         raise ValueError("recent days must be <= long term days")
@@ -173,6 +174,19 @@ def main(args=None):
     }
     txt = template.render(**context)
     (outdir / "index.html").write_text(txt)
+
+
+def get_config(config_dir=None):
+    """Load fss_check_config.yaml from config_dir (if defined) or package"""
+    config_dir = Path(config_dir) if config_dir else Path(fss_check.__file__).parent
+    path = config_dir / "fss_check_config.yml"
+    with open(path) as fh:
+        config = yaml.safe_load(fh)
+
+    config["config_path"] = str(path.absolute())
+    config["config_text"] = path.read_text()
+
+    return config
 
 
 def process_pitch_roll_time_plots(dat, outdir, large_pr_err_sun, large_pr_err_no_sun):
@@ -252,7 +266,11 @@ def process_large_pitch_roll_errors(args, stop, starts, dats, outdir):
 def get_datasets(cache_data, stop, starts):
     logger.info(f"Processing {starts['long_term'].date} to {stop.date}")
     get_data_func = get_fss_prim_data_cached if cache_data else get_fss_prim_data
-    dat = get_data_func(starts["long_term"], stop)
+    dat = get_data_func(
+        starts["long_term"],
+        stop,
+        exclude_intervals=CONFIG["exclude_intervals"],
+    )
     dat = add_pitch_roll_columns(dat)
 
     # Extract a recent data subset
