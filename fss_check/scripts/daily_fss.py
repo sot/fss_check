@@ -85,7 +85,7 @@ def get_parser():
         help='Email address for notification (multiple allowed, use "TEST" for testing)',
     )
     parser.add_argument(
-        "--level",
+        "--log-level",
         default="INFO",
         help="Logging level (default=INFO)",
     )
@@ -108,14 +108,16 @@ def main(args=None):
 
     # Update global config with config file
     CONFIG.update(get_config(args.config_dir))
+    run_info_lines = get_run_info_lines(args, version=fss_check.__version__)
+    CONFIG["run_info"] = "\n".join(run_info_lines)
 
     if args.days_recent > args.days_long_term:
         raise ValueError("recent days must be <= long term days")
     if args.use_maude:
         fetch.data_source.set("cxc", "maude allow_subset=False")
 
-    logger.setLevel(args.level.upper())
-    for line in get_run_info_lines(args, version=fss_check.__version__):
+    logger.setLevel(args.log_level.upper())
+    for line in run_info_lines:
         logger.info(line)
     logger.info(f"Using config from {CONFIG['config_path']}:")
     for line in CONFIG["config_text"].splitlines():
