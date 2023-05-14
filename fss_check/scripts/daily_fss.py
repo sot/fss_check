@@ -1,7 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import argparse
-import shutil
 from datetime import timezone
 from pathlib import Path
 
@@ -180,6 +179,7 @@ def get_config(config_dir=None):
     """Load fss_check_config.yaml from config_dir (if defined) or package"""
     config_dir = Path(config_dir) if config_dir else Path(fss_check.__file__).parent
     path = config_dir / "fss_check_config.yml"
+    logger.info(f"Loading config from {path}")
     with open(path) as fh:
         config = yaml.safe_load(fh)
 
@@ -190,6 +190,7 @@ def get_config(config_dir=None):
 
 
 def process_pitch_roll_time_plots(dat, outdir, large_pr_err_sun, large_pr_err_no_sun):
+    logger.info("Making pitch roll detail plots")
     pitch_roll_time_outfiles = []
     pitch_roll_time_table = vstack(
         [
@@ -219,6 +220,7 @@ def process_pitch_roll_time_plots(dat, outdir, large_pr_err_sun, large_pr_err_no
 
 
 def process_large_pitch_roll_errors(args, stop, starts, dats, outdir):
+    logger.info("Finding large pitch/roll errors")
     for i_epoch, epoch in enumerate(starts):
         start = starts[epoch]
         dat = dats[epoch]

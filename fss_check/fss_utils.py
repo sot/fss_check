@@ -1,12 +1,16 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 """FSS utilities"""
+import logging
+
 import cheta.fetch_eng as fetch
 import numpy as np
 import ska_numpy
 from astropy.table import Table
 from cxotime import CxoTime
 from kadi import events
+
+logger = logging.getLogger("fss_check")
 
 # ### FSS counts to angle calibration on OBC
 #
@@ -131,12 +135,14 @@ def cache_file(fn, ignore=None):
         cachefile = cachedir / f"{fn.__name__}{args_str}{kwargs_str}.npz"
 
         if os.path.exists(cachefile):
+            logger.info(f"Reading cached file {cachefile}")
             with np.load(cachefile) as fh:
                 res = fh["arr_0"]
         else:
             # execute the function with all arguments passed
             res = fn(*args, **kwargs)
             # write to cache file
+            logger.info(f"Writing cache file {cachefile}")
             np.savez_compressed(cachefile, res)
 
         return res

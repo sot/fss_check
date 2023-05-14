@@ -57,7 +57,7 @@ def plot_pitch_for_data_with_large_errors(
     Unlike plot_pitches() below there is no distinction made based
     on the kalman state.
     """
-    logger.info("Running plot_pitch_for_data_with_large_errors")
+    logger.info(f"{start=} {stop=} {outfile=} {axis=}")
     times = dat["times"]
     pitch = dat["pitch"]
     pitch_roll_err = dat[f"{axis}_err"]
@@ -122,6 +122,7 @@ def get_large_pitch_roll_error_intervals(
     :param sun_presence: if True then include intervals with sun presence, else ~sun
     :returns: table of intervals with large pitch or roll errors
     """
+    logger.info(f"{pitch_max=} {err_min=} {dt_join=} {sun_presence=}")
     sun = dat["alpha_sun"] & dat["beta_sun"]
     sun_mask = sun if sun_presence else ~sun
     err_large = (np.abs(dat["pitch_err"]) > err_min) | (
@@ -257,7 +258,7 @@ def plot_delta_vs_pitch_roll(
     outfile : str, optional
         Filename to write plot to.
     """
-    logger.info("Running plot_delta_vs_pitch_roll")
+    logger.info(f"{max_pitch=} {err_lim=} {outfile=}")
     marker = "."
     marker_size = 1
 
@@ -329,9 +330,12 @@ def plot_roll_pitch_vs_time(
         Plot the FSS - OBC errors in addition to the FSS and OBC values
     suptitle : str
         Optional super-title for the plot
+    outfile : str
+        Optional output filename to save the plot
     """
     start = CxoTime(start)
     stop = CxoTime(stop)
+    logger.info(f"{start=} {stop=} {pitch_max=} {plot_errs=} {suptitle=} {outfile=}")
     i0, i1 = np.searchsorted(dat["times"], [start.secs, stop.secs])
     dat = dat[i0:i1]
 
@@ -419,6 +423,7 @@ def plot_roll_pitch_vs_time(
 def plot_pitch_roll_spm_mp_constraints(
     dat, pitch_max=135.0, err_caution=1.0, err_warning=2.0, outfile=None
 ):
+    logger.info(f"{pitch_max=} {err_caution=} {err_warning=} {outfile=}")
     from ska_sun import allowed_rolldev
 
     plt.figure(figsize=(12, 8))
