@@ -241,28 +241,28 @@ def process_large_pitch_roll_errors(args, stop, starts, dats, outdir):
             )
 
     # Table of intervals of large (> 2 deg) pitch or roll errors
-    large_pr_error_sun = get_large_pitch_roll_error_intervals(
+    large_pr_err_sun = get_large_pitch_roll_error_intervals(
         dats["table"],
         pitch_max=CONFIG["spm_pitch_warning"],
         err_min=CONFIG["get_large_pitch_roll_error_intervals"]["err_min"],
         dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
         sun_presence=True,
     )
-    dt = stop - CxoTime(large_pr_error_sun["datestart"])
-    large_pr_error_sun["recent"] = dt < args.highlight_recent_days * u.day
+    dt = stop - CxoTime(large_pr_err_sun["datestart"])
+    large_pr_err_sun["recent"] = dt < args.highlight_recent_days * u.day
 
     # Table of intervals of large (> 2 deg) pitch or roll errors
-    large_prerr_no_sun = get_large_pitch_roll_error_intervals(
+    large_pr_err_no_sun = get_large_pitch_roll_error_intervals(
         dats["table"],
         pitch_max=CONFIG["spm_pitch_limit"],
         err_min=CONFIG["get_large_pitch_roll_error_intervals"]["err_min"],
         dt_join=CONFIG["get_large_pitch_roll_error_intervals"]["dt_join"],
         sun_presence=False,
     )
-    dt = stop - CxoTime(large_prerr_no_sun["datestart"])
-    large_prerr_no_sun["recent"] = dt < args.highlight_recent_days * u.day
+    dt = stop - CxoTime(large_pr_err_no_sun["datestart"])
+    large_pr_err_no_sun["recent"] = dt < args.highlight_recent_days * u.day
 
-    return large_pr_error_sun, large_prerr_no_sun
+    return large_pr_err_sun, large_pr_err_no_sun
 
 
 def get_datasets(cache_data, stop, starts):
