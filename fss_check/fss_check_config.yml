@@ -6,8 +6,8 @@ exclude_intervals:
 - 2022:293:16:00:00.000 2022:296:16:00:00.000
 - 2023:044:17:41:38.757 2023:048:03:49:31.349
 
-spm_pitch_limit: 135.0
-spm_pitch_warning: 136.0
+spm_pitch_limit: 125.0
+spm_pitch_warning: 130.0
 
 get_large_pitch_roll_error_intervals:
   err_min: 2.0  # Minimum pitch / roll error
