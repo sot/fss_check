@@ -16,5 +16,5 @@ setup(
     zip_safe=False,
     entry_points=entry_points,
     packages=["fss_check", "fss_check.scripts"],
-    package_data={"fss_check": ["data/*/*", "task_schedule.cfg"]},
+    package_data={"fss_check": ["data/index.html", "task_schedule.cfg"]},
 )

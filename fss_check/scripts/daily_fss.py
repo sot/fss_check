@@ -174,14 +174,6 @@ def main(args=None):
     txt = template.render(**context)
     (outdir / "index.html").write_text(txt)
 
-    # Copy the historical plot files
-    outdir_hist = outdir / "fss_prim_hist"
-    outdir_hist.mkdir(parents=True, exist_ok=True)
-    for inpath in (data_dir / "fss_prim_hist").glob("*"):
-        outpath = outdir_hist / inpath.name
-        if not outpath.exists():
-            shutil.copy2(inpath, outpath)
-
 
 def process_pitch_roll_time_plots(dat, outdir, large_pr_err_sun, large_pr_err_no_sun):
     pitch_roll_time_outfiles = []
