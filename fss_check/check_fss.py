@@ -57,7 +57,7 @@ def plot_pitch_for_data_with_large_errors(
     Unlike plot_pitches() below there is no distinction made based
     on the kalman state.
     """
-    logger.info(f"{start=} {stop=} {outfile=} {axis=}")
+    logger.info(f"{start.date=} {stop.date=} {outfile=!s} {axis=}")
     times = dat["times"]
     pitch = dat["pitch"]
     pitch_roll_err = dat[f"{axis}_err"]
@@ -335,7 +335,7 @@ def plot_roll_pitch_vs_time(
     """
     start = CxoTime(start)
     stop = CxoTime(stop)
-    logger.info(f"{start=} {stop=} {pitch_max=} {plot_errs=} {suptitle=} {outfile=}")
+    logger.info(f"{start.date=} {stop.date=} {pitch_max=} {plot_errs=} {suptitle=} {outfile=!s}")
     i0, i1 = np.searchsorted(dat["times"], [start.secs, stop.secs])
     dat = dat[i0:i1]
 
@@ -423,7 +423,7 @@ def plot_roll_pitch_vs_time(
 def plot_pitch_roll_spm_mp_constraints(
     dat, pitch_max=135.0, err_caution=1.0, err_warning=2.0, outfile=None
 ):
-    logger.info(f"{pitch_max=} {err_caution=} {err_warning=} {outfile=}")
+    logger.info(f"{pitch_max=} {err_caution=} {err_warning=} {outfile=!s}")
     from ska_sun import allowed_rolldev
 
     plt.figure(figsize=(12, 8))

@@ -9,10 +9,11 @@ import jinja2
 import matplotlib
 import numpy as np
 from acdc.common import send_mail
-from astropy.table import vstack
+from astropy.table import vstack, Table
 from cheta import fetch_eng as fetch
 from cxotime import CxoTime, CxoTimeLike
 from ska_helpers.logging import basic_logger
+from ska_helpers.run_info import get_run_info_lines
 import yaml
 
 import fss_check
@@ -81,7 +82,7 @@ def get_parser():
         action="append",
         dest="emails",
         default=[],
-        help="Email address for notification (multiple allowed)",
+        help='Email address for notification (multiple allowed, use "TEST" for testing)',
     )
     parser.add_argument(
         "--level",
@@ -112,7 +113,10 @@ def main(args=None):
         raise ValueError("recent days must be <= long term days")
     if args.use_maude:
         fetch.data_source.set("cxc", "maude allow_subset=False")
+
     logger.setLevel(args.level.upper())
+    for line in get_run_info_lines(args, version=fss_check.__version__):
+        logger.info(line)
 
     stop = CxoTime(args.stop)
     starts = {
@@ -174,12 +178,23 @@ def main(args=None):
     txt = template.render(**context)
     (outdir / "index.html").write_text(txt)
 
+    # Send email alert if there are new large pitch/roll errors. Also maintain a file
+    # with the last date of available telemetry to allow detection of *new* large
+    # pitch/roll errors.
+    date_telem_stop_prev = read_date_telem_stop_prev(outdir)
+    large_pr_errs_new = get_new_large_pr_errs(
+        large_pr_err_no_sun, large_pr_err_sun, date_telem_stop_prev
+    )
+    if len(large_pr_errs_new) > 0:
+        send_alert_email(args, large_pr_errs_new)
+    write_date_telem_stop_prev(outdir, date_last)
+
 
 def get_config(config_dir=None):
     """Load fss_check_config.yaml from config_dir (if defined) or package"""
     config_dir = Path(config_dir) if config_dir else Path(fss_check.__file__).parent
     path = config_dir / "fss_check_config.yml"
-    logger.info(f"Loading config from {path}")
+    logger.info(f"Loading config from {path!s}")
     with open(path) as fh:
         config = yaml.safe_load(fh)
 
@@ -283,11 +298,49 @@ def get_datasets(cache_data, stop, starts):
     return dats
 
 
-def send_alert_email(opt, logger):
-    subject = f"fss_check3: large pitch/roll error"
-    lines = ["Long drop interval(s) found for the following perigee events:"]
+def write_date_telem_stop_prev(outdir: Path, date_telem_stop: str):
+    path = outdir / "date_telem_stop.txt"
+    logger.info(f"Writing previous telemetry stop time {date_telem_stop.date} to {path!s}")
+    path.write_text(date_telem_stop.date)
+
+
+def read_date_telem_stop_prev(outdir: Path) -> str:
+    path = outdir / "date_telem_stop.txt"
+    if path.exists():
+        logger.info(f"Reading previous telemetry stop time from {path!s}")
+        date_telem_stop_prev = path.read_text().strip()
+    else:
+        date_telem_stop_prev = "1999:001:00:00:00"
+    return date_telem_stop_prev
+
+
+def get_new_large_pr_errs(large_pr_err_sun, large_pr_err_no_sun, date_telem_stop_prev):
+    large_pr_err: Table = vstack([large_pr_err_sun, large_pr_err_no_sun])
+    large_pr_err.sort("datestart", reverse=True)
+
+    # Get intervals which are new since the end of telemetry for previous run of
+    # daily processing. This gives *new* violations.
+    ok = large_pr_err["datestop"] > date_telem_stop_prev
+    large_pr_err_new = large_pr_err[ok]
+    return large_pr_err_new
+
+
+def send_alert_email(opt, large_pr_err_new):
+    subject = "fss_check3: large pitch/roll error(s)"
+    err_min = CONFIG["get_large_pitch_roll_error_intervals"]["err_min"]
+    lines = [f"Interval(s) found with pitch/roll error > {err_min} deg"]
+    tbl = large_pr_err_new[
+        ["datestart", "duration", "pitch_min", "pitch_err_max", "roll_err_max"]
+    ]
+    tbl["duration"].format = ".1f"
+    tbl["pitch_min"].format = ".2f"
+    tbl["pitch_err_max"].format = ".2f"
+    tbl["roll_err_max"].format = ".2f"
+
+    lines.extend(tbl.pformat_all())
     text = "\n".join(lines)
-    send_mail(logger, opt, subject, text, __file__)
+    if opt.emails:
+        send_mail(logger, opt, subject, text, __file__)
 
 
 def get_formatted_local_time(date: CxoTimeLike):
