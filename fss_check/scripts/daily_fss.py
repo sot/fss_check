@@ -117,6 +117,10 @@ def main(args=None):
     logger.setLevel(args.level.upper())
     for line in get_run_info_lines(args, version=fss_check.__version__):
         logger.info(line)
+    logger.info(f"Using config from {CONFIG['config_path']}:")
+    for line in CONFIG["config_text"].splitlines():
+        logger.info(line)
+    logger.info("")
 
     stop = CxoTime(args.stop)
     starts = {
@@ -300,7 +304,9 @@ def get_datasets(cache_data, stop, starts):
 
 def write_date_telem_stop_prev(outdir: Path, date_telem_stop: str):
     path = outdir / "date_telem_stop.txt"
-    logger.info(f"Writing previous telemetry stop time {date_telem_stop.date} to {path!s}")
+    logger.info(
+        f"Writing previous telemetry stop time {date_telem_stop.date} to {path!s}"
+    )
     path.write_text(date_telem_stop.date)
 
 
