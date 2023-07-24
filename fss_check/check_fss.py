@@ -12,7 +12,7 @@ from cheta.utils import logical_intervals
 from cxotime import CxoTime, CxoTimeLike
 from kadi import events
 from kadi.events.models import fuzz_states
-from Ska.Matplotlib import cxctime2plotdate, plot_cxctime, set_min_axis_range
+from ska_matplotlib import cxctime2plotdate, plot_cxctime, set_min_axis_range
 
 from fss_check.fss_utils import get_spm_pitch_roll
 
@@ -112,7 +112,7 @@ def get_large_pitch_roll_error_intervals(
     dt_join: float = 100,
     sun_presence: bool = True,
 ) -> Table:
-    """Return intervals with pitch < pitch_warning and pitch / roll err > err_min
+    """Return intervals with pitch < pitch_warning and pitch or roll err > err_min
 
     :param dat: data table
     :param axis: 'roll' or 'pitch'
@@ -266,6 +266,8 @@ def plot_delta_vs_pitch_roll(
     _, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2, 2, figsize=(8, 6))
 
     def plot_one(ax, xaxis, yaxis):
+        """Make a plot of delta-{yaxis} vs {xaxis} where those can be one of "pitch"
+        or "roll", respectively."""
         channel = {"pitch": "beta", "roll": "alpha"}[yaxis]
         ok = ok_pitch & dat[channel + "_sun"]
 
