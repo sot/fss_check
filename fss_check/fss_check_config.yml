@@ -1,0 +1,31 @@
+exclude_intervals:
+- 2018:086:04:26:00.000 2018:086:04:28:00.000
+- 2018:293:01:16:00.000 2018:293:01:46:00.000
+- 2021:295:03:44:20.000 2021:295:03:44:30.000
+- 2021:296:10:40:00.000 2021:297:00:00:00.000
+- 2022:293:16:00:00.000 2022:296:16:00:00.000
+- 2023:044:17:41:38.757 2023:048:03:49:31.349
+# Bad point at 2023:202:02:34:02.562
+- 2023:202:02:33:50.000 2023:202:02:34:20.000
+
+spm_pitch_limit: 125.0
+spm_pitch_warning: 130.0
+
+get_large_pitch_roll_error_intervals:
+  err_min: 2.0  # Minimum pitch / roll error
+  dt_join: 10  # Join adjacent intervals within this time (secs)
+
+plot_pitch_for_data_with_large_errors:
+  plot_pitch_min: 120.0
+
+plot_roll_pitch_vs_time:
+  plot_errs: false
+
+max_pitch_roll_time_plots: 10
+
+plot_delta_vs_pitch_roll:
+  err_lim: 2.0  # Allowed pitch/roll error within SPM limit
+
+plot_pitch_roll_spm_mp_constraints:
+  err_caution: 1.0
+  err_warning: 2.0

@@ -1,0 +1,157 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+    <title>FSS trending</title>
+    <link href="/mta/ASPECT/aspect.css" rel="stylesheet" type="text/css" media="all" />
+    <style type="text/css">
+        tr.pink-bkg {
+            background-color: #f88
+        }
+
+        table.border {
+            border-width: 1px;
+            border-spacing: 0px;
+            border-style: outset;
+            border-color: gray;
+            border-collapse: separate;
+        }
+
+        table.border td {
+            border-width: 1px;
+            padding: 1px 5px 1px 5px;
+            border-style: solid;
+            border-color: gray;
+            text-align: right;
+        }
+
+        table.border th {
+            border-width: 1px;
+            padding: 1px 5px 1px 5px;
+            border-style: solid;
+            border-color: gray;
+        }
+    </style>
+</head>
+
+<body>
+    <!--#include virtual="/mta/ASPECT/header.html"-->
+
+    <h2> FSS-B Performance Trending through stop={{date_last}} ({{date_last_local}})
+    </h2>
+
+    For more information on the FSS-B or historical data plots, see the
+    <a href="https://cxc.cfa.harvard.edu/mta/ASPECT/fss_check3/legacy/" target="_blank"
+    >FSS-B legacy trending page</a>.
+    <!-- link to configuration-file section -->
+
+    <p/> See also the <a href="#runtime-info">Runtime information</a> section.
+
+    <h3> Pitch Angles for Bad Data </h3>
+
+    <p>The plots below show the sun pitch angle for data points where the FSS-B
+        derived off-nominal roll or pitch is different from the true off-nominal roll or
+        pitch by more than 2.0 degrees. In other words, points when the FSS is reporting
+        erroneous values. This is an expected situation outside of the nominal FSS FOV
+        and when the FSS Sun Presence flag is False, but is anomalous for times when FSS
+        Sun Presence is True (which means the OBC is allowed to use the data in active
+        safing monitors).
+    </p>
+
+    <table>
+        <tr>
+            <th> Long term: within {{days_long_term}} days</th>
+            <th> Recent: within {{days_recent}} days</th>
+        </tr>
+        <tr>
+            <td> <img SRC="pitch_bad_roll_long_term.png" width="500"><br /> </td>
+            <td> <img SRC="pitch_bad_roll_recent.png" width="500"><br /> </td>
+        <tr>
+        <tr>
+            <td> <img SRC="pitch_bad_pitch_long_term.png" width="500"><br /> </td>
+            <td> <img SRC="pitch_bad_pitch_recent.png" width="500"><br /> </td>
+        <tr>
+    </table>
+
+    <h4> Intervals of pitch or roll error &gt;
+        {{config["get_large_pitch_roll_error_intervals"]["err_min"]}} deg for pitch &lt;
+        {{config["spm_pitch_warning"]}} deg with sun presence
+        within {{days_table}} days </h4>
+    </h4>
+    <table class="border">
+        <tr>
+            <th> Date </th>
+            <th> Duration </th>
+            <th> Pitch min </th>
+            <th> Pitch err max </th>
+            <th> Roll err max </th>
+        </tr>
+        {% for row in large_pitch_roll_error %}
+        <tr {%if row['recent']%}class="pink-bkg" {%endif%}>
+            <td> {{row['datestart']}} </td>
+            <td> {{ row['duration'] | round(1) }} </td>
+            <td> {{ row['pitch_min'] | round(2) }} </td>
+            <td> {{ row['pitch_err_max'] | round(2) }} </td>
+            <td> {{ row['roll_err_max'] | round(2) }} </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h4> Intervals of pitch or roll error &gt;
+        {{config["get_large_pitch_roll_error_intervals"]["err_min"]}} deg for pitch &lt;
+        {{config["spm_pitch_limit"]}} deg with no sun presence
+        within {{days_table}} days
+    </h4>
+    <table class="border">
+        <tr>
+            <th> Date </th>
+            <th> Duration </th>
+            <th> Pitch min </th>
+            <th> Pitch err max </th>
+            <th> Roll err max </th>
+        </tr>
+        {% for row in large_prerr_no_sun %}
+        <tr {%if row['recent']%}class="pink-bkg" {%endif%}>
+            <td> {{row['datestart']}} </td>
+            <td> {{ row['duration'] | round(1) }} </td>
+            <td> {{ row['pitch_min'] | round(2) }} </td>
+            <td> {{ row['pitch_err_max'] | round(2) }} </td>
+            <td> {{ row['roll_err_max'] | round(2) }} </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <h4>Interval detail plots of pitch / roll vs. time within {{days_recent}} days</h4>
+    NOTE: FSS data (red) are only plotted when the FSS Sun Presence flag is True. <p />
+    {% for imgfile in pitch_roll_time_outfiles %}
+    <img SRC="{{imgfile}}" width="800">
+    {% endfor %}
+
+    <h3> Pitch / Roll errors vs. Pitch / Roll within SPM pitch limit
+        {{config["spm_pitch_limit"]}} deg and within
+        {{days_recent}} days </h3>
+    <img SRC="delta_pitch_roll_vs_pitch_roll_recent.png" width="800">
+
+    <h3> Pitch / Roll points within SPM pitch limit
+        {{config["spm_pitch_limit"]}} deg and within
+        {{days_recent}} days </h3>
+    <img SRC="pitch_roll_spm_mp_constraints_recent.png" width="1000">
+
+    <h3> Analysis data </h3>
+    The scripts used in this analysis are in
+    <a href="https://github.com/sot/fss_check">https://github.com/sot/fss_check</a>.
+
+    <h3 id="runtime-info"> Run information </h3>
+    <pre>{{config["run_info"]}}</pre>
+    <p/> Runtime configuration file: {{config["config_path"]}}
+
+    <pre>{{config["config_text"]}}</pre>
+
+    <br></br>
+
+    <!--#include virtual="/mta/ASPECT/footer.html"-->
+    <!--footer end-->
+
+</body>
+
+</html>
