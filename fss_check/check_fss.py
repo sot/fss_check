@@ -337,7 +337,9 @@ def plot_roll_pitch_vs_time(
     """
     start = CxoTime(start)
     stop = CxoTime(stop)
-    logger.info(f"{start.date=} {stop.date=} {pitch_max=} {plot_errs=} {suptitle=} {outfile=!s}")
+    logger.info(
+        f"{start.date=} {stop.date=} {pitch_max=} {plot_errs=} {suptitle=} {outfile=!s}"
+    )
     i0, i1 = np.searchsorted(dat["times"], [start.secs, stop.secs])
     dat = dat[i0:i1]
 
