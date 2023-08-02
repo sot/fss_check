@@ -8,13 +8,13 @@ import astropy.units as u
 import jinja2
 import matplotlib
 import numpy as np
+import yaml
 from acdc.common import send_mail
-from astropy.table import vstack, Table
+from astropy.table import Table, vstack
 from cheta import fetch_eng as fetch
 from cxotime import CxoTime, CxoTimeLike
 from ska_helpers.logging import basic_logger
 from ska_helpers.run_info import get_run_info_lines
-import yaml
 
 import fss_check
 from fss_check.check_fss import (
